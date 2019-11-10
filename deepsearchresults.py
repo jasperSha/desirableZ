@@ -1,51 +1,23 @@
 import requests
 import xml.etree.ElementTree as ET
 
-url = "https://zillow.com/webservice/GetDeepSearchResults.htm"
-key = 'X1-ZWz1hgrt0pjaiz_1brbp'
-citystatezip = 'LongBeach+CA'
-address = '6415+E+Bixby+Hill+Rd'
+def deep_search(key, url, citystatezip, address, zillowObject, deepPropAttr):
 
+    retrievalCategories = vars(zillowObject)
+    parameters = {
+        "zws-id": key,
+        'citystatezip':citystatezip,
+        'address': address
+    }
 
-parameters = {
-    "zws-id": key,
-    'citystatezip':citystatezip,
-    'address': address
-}
+    response = requests.get(url, params=parameters)
+    root = ET.fromstring(response.content)
 
-retrievalList = (
-    'zpid',
+    for category in deepPropAttr:
+        for child in root.iter('%s' % category):
+            retrievalCategories['%s'%category] = child.text
+
+    zillowObject.update(**retrievalCategories)
     
-    'last-updated',
-    
-    'street',
-    'zipcode',
-    'city',
-    'state',
-    'latitude',
-    'longitude',
-    
-    'FIPScounty',
-    'useCode',
-    'taxAssessmentYear',
-    'taxAssessment',
-    
-    'yearBuilt',
-    'lotSizeSqFt',
-    'finishedSqFt',
-    'bathrooms',
-    'bedrooms',
+    return zillowObject
 
-    'lastSoldDate',
-    'lastSoldPrice'
-    )
-
-
-
-response = requests.get(url, params=parameters)
-
-
-
-root = ET.fromstring(response.content)
-for child in root.iter('*'):
-    print(child.tag, child.text)
