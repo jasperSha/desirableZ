@@ -1,24 +1,10 @@
 import requests
 import xml.etree.ElementTree as ET
+from zillowObject import zillowObject
 
-key = 'X1-ZWz1hgrt0pjaiz_1brbp'
-zpid = '21212400'
+def get_zestimate(key, zpid, zillowObject):
 
-parameters = {
-    'zws-id':key,
-    'zpid':zpid
-}
-
-class PropertyZest:
-        def __init__(self, d):
-            self.__dict__ = d
-
-        def outputValues(self):
-            print(self.__dict__)
-
-
-
-retrievalList = (
+    retrievalList = (
     'amount',
     'valueChange',
     'low',
@@ -30,28 +16,20 @@ retrievalList = (
     'county-id',
     'state-id'
     )
+    
+    url = 'https://www.zillow.com/webservice/GetZestimate.htm'
+    parameters = {
+        'zws-id':key,
+        'zpid':zpid
+    }
 
-retrievalCategories = dict.fromkeys([
-    'amount',
-    'valueChange',
-    'low',
-    'high',
-    'percentile',
-    'zindexValue',
-    'zipcode-id',
-    'city-id',
-    'county-id',
-    'state-id'
-])
+    retrievalCategories = zillowObject.returnValues()
+    response = requests.get(url,params = parameters)
 
-response = requests.get("https://www.zillow.com/webservice/GetZestimate.htm",
-                        params = parameters)
+    root = ET.fromstring(response.content)
+    for category in retrievalList:
+        for child in root.iter('%s'%category):
+            retrievalCategories['%s'%category] = child.text
 
-root = ET.fromstring(response.content)
-for category in retrievalList:
-    for child in root.iter('%s'%category):
-        retrievalCategories['%s'%category] = child.text
-
-zillowObject = PropertyZest(retrievalCategories)
-
-zillowObject.outputValues()
+    zillowObject.setValues(retrievalCategories)
+    return zillowObject

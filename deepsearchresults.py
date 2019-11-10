@@ -13,12 +13,39 @@ parameters = {
     'address': address
 }
 
+retrievalList = (
+    'zpid',
+    
+    'last-updated',
+    
+    'street',
+    'zipcode',
+    'city',
+    'state',
+    'latitude',
+    'longitude',
+    
+    'FIPScounty',
+    'useCode',
+    'taxAssessmentYear',
+    'taxAssessment',
+    
+    'yearBuilt',
+    'lotSizeSqFt',
+    'finishedSqFt',
+    'bathrooms',
+    'bedrooms',
+
+    'lastSoldDate',
+    'lastSoldPrice'
+    )
+
 
 
 response = requests.get(url, params=parameters)
 
 
+
 root = ET.fromstring(response.content)
-print(response.content)
 for child in root.iter('*'):
     print(child.tag, child.text)
