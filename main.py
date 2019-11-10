@@ -1,10 +1,11 @@
-from zillowObject import zillowObject
-from zestimate import get_zestimate as ZT
+from zillowObject import zillowObject as zo
+from zestimate import get_zestimate as zt
 
 key = 'X1-ZWz1hgrt0pjaiz_1brbp'
 zpid = '21212400'
 
-defaults = {
+#default property values
+propertyDefaults = {
             'amount': 0,
             'valueChange': 0,
             'low': 0,
@@ -38,7 +39,21 @@ defaults = {
             'lastSoldPrice': 0
         }
 
+#property attributes unique to zestimate call
+zestPropAttr = (
+            'amount',
+            'valueChange',
+            'low',
+            'high',
+            'percentile',
+            'zindexValue',
+            'zipcode-id',
+            'city-id',
+            'county-id',
+            'state-id'
+        )
+
 
 if __name__=='__main__':
-    zillowProperty = zillowObject.PropertyZest(defaults)
-    print(ZT(key, zpid, zillowProperty).returnValues())
+    zillowProperty = zo.PropertyZest(propertyDefaults)
+    zt(key, zpid, zillowProperty, zestPropAttr)
