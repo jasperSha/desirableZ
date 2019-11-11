@@ -3,11 +3,13 @@ from zestimate import get_zestimate as zt
 from deepsearchresults import deep_search as ds
 
 key = 'X1-ZWz1hgrt0pjaiz_1brbp'
-zpid = '21212400'
+
 zestimate_url = 'https://www.zillow.com/webservice/GetZestimate.htm'
 deepsearch_url = 'https://zillow.com/webservice/GetDeepSearchResults.htm'
-deep_citystatezip = 'LongBeach+CA'
-deep_address = '6415+E+Bixby+Hill+Rd'
+
+zpid = '21212400'
+deep_citystatezip = 'Anaheim+CA'
+deep_address = '2029+W+Niobe+Ave'
 
 #default property values
 propertyDefaults = {
@@ -89,5 +91,8 @@ deepPropAttr = (
 
 if __name__=='__main__':
     zillowProperty = zo.PropertyZest(propertyDefaults)
-    zt(key, zpid, zestimate_url, zillowProperty, zestPropAttr)
     ds(key, deepsearch_url, deep_citystatezip, deep_address, zillowProperty, deepPropAttr)
+    x = vars(zillowProperty)['zpid']
+
+    zt(key, x, zestimate_url, zillowProperty, zestPropAttr)
+    print(vars(zillowProperty))

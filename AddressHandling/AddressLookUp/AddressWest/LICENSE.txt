@@ -1,0 +1,1396 @@
+Data collected by OpenAddresses (http://openaddresses.io).
+
+us/ak/anchorage
+Website: http://www.muni.org/Departments/it/GIS2/Pages/MOAGISData.aspx
+License: Unknown
+Required attribution: Municipality of Anchorage
+
+us/ak/fairbanks_north_star_borough
+Website: http://www.arcgis.com/home/item.html?id=93931f451cd940519ff182c802150cd3
+License: Unknown
+Required attribution: Yes
+
+us/ak/haines
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ak/kenai_peninsula_borough
+Website: http://www.kpb.us/gis-dept/kpb-data-downloads/cadastre
+License: Unknown
+Required attribution: Copyright © 2015 Kenai Peninsula Borough
+
+us/ak/ketchikan
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ak/kodiak_island_borough
+Website: http://www.arcgis.com/home/item.html?id=f829e1f3642c4222a807ae5b5b8d46e5
+License: Unknown
+Required attribution: Yes
+
+us/az/city_of_flagstaff
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/az/city_of_glendale
+Website: http://gis.glendaleaz.com/gis/
+License: Unknown
+Required attribution: City of Glendale
+
+us/az/cochise
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/az/coconino
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/az/maricopa
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/az/pima
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/az/pinal
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/az/santa_cruz
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/az/statewide
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/az/yavapai
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/alameda
+Website: Unknown
+License: http://www.acgov.org/acdata/terms.htm
+Required attribution: Alameda County
+
+us/ca/amador
+Website: http://www.co.amador.ca.us/departments/information-technology/gis/gis-data
+License: Unknown
+Required attribution: Amador County
+
+us/ca/berkeley
+Website: http://www.ci.berkeley.ca.us/datacatalog/
+License: Unknown
+Required attribution: City of Berkeley
+
+us/ca/butte
+Website: http://www.buttecounty.net/gis/Home.aspx
+License: Unknown
+Required attribution: Butte County
+
+us/ca/calaveras
+Website: https://opendata-calaveras-gis.opendata.arcgis.com/
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_anaheim
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_bakersfield
+Website: Unknown
+License: http://www.bakersfieldcity.us/gov/depts/geographic_information_services/default.htm
+Required attribution: City of Bakersfield
+
+us/ca/city_of_bishop
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_brea
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_burbank
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_carson
+Website: http://ci.carson.ca.us/
+License: Unknown
+Required attribution: City of Carson
+
+us/ca/city_of_culver_city
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_cupertino
+Website: Unknown
+License: Unknown
+Required attribution: City of Cupertino
+
+us/ca/city_of_elk_grove
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_emeryville
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_eureka
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_fullerton
+Website: Unknown
+License: Unknown
+Required attribution: City of Fullerton
+
+us/ca/city_of_garden_grove
+Website: https://ggcity.org/maps/data-portal/
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_hermosa_beach
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_huntington_beach
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_irvine
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_jackson
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_kerman
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_laguna_niguel
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_lake_forest
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_lancaster
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_long_beach
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_los_angeles
+Website: https://data.lacity.org/
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_newport_beach
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_orange
+Website: http://cityoforange.org/
+License: Unknown
+Required attribution: City of Orange
+
+us/ca/city_of_oroville
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_palo_alto
+Website: http://www.cityofpaloalto.org/gov/depts/it/open_data/terms_of_use.asp
+License: Unknown
+Required attribution: City of Palo Alto
+
+us/ca/city_of_piedmont
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_redlands
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_riverside
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_san_diego
+Website: https://data.sandiego.gov/datasets/address-points-apn/
+License: PD
+Required attribution: Yes
+
+us/ca/city_of_san_jose
+Website: https://github.com/sanjosegis/gis-open-data/blob/master/README_Disclaimer.md
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_san_jose2
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_san_juan_capistrano
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_san_luis_obispo
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_santa_clara
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_santa_cruz
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_south_lake_tahoe
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_sunnyvale
+Website: Unknown
+License: Unknown
+Required attribution: City of Sunnyvale
+
+us/ca/city_of_temecula
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_walnut_creek
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_west_sacramento
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/city_of_whittier
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/el_dorado
+Website: http://www.edcgov.us/Government/Surveyor/FAQs/G_I_S__FAQs.aspx
+License: Unknown
+Required attribution: El Dorando County
+
+us/ca/fresno
+Website: Unknown
+License: http://www.co.fresno.ca.us/DepartmentPage.aspx?id=52121
+Required attribution: Fresno County
+
+us/ca/glenn
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/inyo
+Website: http://inyocounty.us/gis/GISPage_Data.htm
+License: Unknown
+Required attribution: Yes
+
+us/ca/kings
+Website: Unknown
+License: Unknown
+Required attribution: Kings County
+
+us/ca/lake
+Website: http://gis.co.lake.ca.us/
+License: Unknown
+Required attribution: Lake County
+
+us/ca/lassen
+Website: http://lassencounty.org/govt/dept/assessor/default.asp
+License: Unknown
+Required attribution: Lassen County
+
+us/ca/los_angeles
+Website: http://egis3.lacounty.gov/dataportal/2012/06/19/la-county-address-points/
+License: http://egis3.lacounty.gov/dataportal/disclaimer/
+Required attribution: Los Angeles County
+
+us/ca/madera
+Website: http://www.madera-county.com/index.php/assessment-information/261-assessors-maps-cadastral-drafting
+License: Unknown
+Required attribution: Madera County
+
+us/ca/marin
+Website: Unknown
+License: Unknown
+Required attribution: Marin County
+
+us/ca/mendocino
+Website: http://www.co.mendocino.ca.us/econdev/gis/index.htm
+License: Unknown
+Required attribution: Mendocino County
+
+us/ca/merced
+Website: Unknown
+License: Unknown
+Required attribution: Merced County
+
+us/ca/mono
+Website: Unknown
+License: Unknown
+Required attribution: Mono County
+
+us/ca/monterey
+Website: http://montereycountyopendata.montereyco.opendata.arcgis.com/datasets/a6e876476ea641579db2ba9c3fe9f779_0
+License: http://montereycountyopendata.montereyco.opendata.arcgis.com/datasets/a6e876476ea641579db2ba9c3fe9f779_0
+Required attribution: Monterey County
+
+us/ca/napa
+Website: http://gis.napa.ca.gov/giscatalog/catalog_xml.asp
+License: http://gis.napa.ca.gov/giscatalog/viewXML.asp?Name=MAINGIS.GIS.ADDRESSES_ALL&meta_style=fgdc
+Required attribution: Napa County
+
+us/ca/nevada
+Website: http://data.nevcounty.opendata.arcgis.com/
+License: Unknown
+Required attribution: County of Nevada, California
+
+us/ca/orange
+Website: http://ocpublicworks.com/survey/services/gis
+License: Unknown
+Required attribution: Orange County
+
+us/ca/placer
+Website: Unknown
+License: http://www.placer.ca.gov/departments/communitydevelopment/gis/gis_download
+Required attribution: County of Placer
+
+us/ca/plumas
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/riverside
+Website: http://gis.rivcoit.org/GISData.aspx
+License: Unknown
+Required attribution: Yes
+
+us/ca/san_benito
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/san_francisco
+Website: http://www.sfgov.org
+License: Public Domain
+Required attribution: Yes
+
+us/ca/san_luis_obispo
+Website: http://gis.slocounty.opendata.arcgis.com/datasets/61f3ddf2074942e6932b8f5084c20ab4_0
+License: Unknown
+Required attribution: San Luis Obispo County
+
+us/ca/santa_clara
+Website: https://sftp.sccgov.org/courier/web/1000@/wmLogin.html
+License: Unknown
+Required attribution: Santa Clara County
+
+us/ca/santa_cruz
+Website: http://www.co.santa-cruz.ca.us/Departments/GeographicInformationSystems%28GIS%29.aspx
+License: Unknown
+Required attribution: Santa Cruz County
+
+us/ca/shasta
+Website: http://www.co.shasta.ca.us/index/gis_index.aspx
+License: Unknown
+Required attribution: Shasta County
+
+us/ca/siskiyou
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/solano
+Website: Unknown
+License: Unknown
+Required attribution: Solano County
+
+us/ca/sonoma
+Website: http://sonomacounty.ca.gov/ISD/Systems-and-Programming/Geographic-Information-Systems/
+License: Unknown
+Required attribution: Sonoma County
+
+us/ca/sutter
+Website: https://www.co.sutter.ca.us/doc/government/depts/cs/ps/cs_planning_services
+License: Unknown
+Required attribution: Yes
+
+us/ca/trinity
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/tulare
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ca/ventura
+Website: http://www.ventura.org/gis-mapping/gis-data-downloads-mapping-base
+License: Indemnification
+Required attribution: Yes
+
+us/ca/yolo
+Website: http://www.yolocounty.org/community-services/planning-public-works/geographic-information-system-gis/data-downloads
+License: http://www.yolocounty.org/community-development/planning-public-works/geographic-information-system-gis-/data-downloads
+Required attribution: Yolo County
+
+us/ca/yuba
+Website: http://gis.co.yuba.ca.us/data.html
+License: Unknown
+Required attribution: Yuba County
+
+us/co/adams
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/arapahoe
+Website: Unknown
+License: Crappy License
+Required attribution: Arapahoe County
+
+us/co/archuleta
+Website: Unknown
+License: Unknown
+Required attribution: Archuleta County
+
+us/co/boulder
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/broomfield
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/city_of_aurora
+Website: Unknown
+License: Crappy License
+Required attribution: City of Aurora
+
+us/co/city_of_boulder
+Website: http://data.opencolorado.org/dataset/boulder-addresses/resource/50d86ebc-b489-4791-b63d-2e2da5b5b052
+License: Unknown
+Required attribution: City of Boulder
+
+us/co/city_of_commerce_city
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/city_of_erie
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/city_of_greeley
+Website: http://greeleygis.greeley.opendata.arcgis.com/
+License: Unknown
+Required attribution: City of Greeley
+
+us/co/city_of_littleton
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/city_of_thornton
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/city_of_vail
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/denver
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/douglas
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/el_paso
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/grand
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/gunnison
+Website: http://www.gunnisoncounty.org/324/Downloadable-Datasets
+License: Unknown
+Required attribution: Gunnison County
+
+us/co/la_plata
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/logan
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/mesa
+Website: https://gis.mesacounty.us
+License: Unknown
+Required attribution: Mesa County
+
+us/co/park
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/pitkin
+Website: Unknown
+License: Unknown
+Required attribution: Pitkin County
+
+us/co/rio_blanco
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/sanmiguel
+Website: http://www.sanmiguelcountyco.gov/185/MappingGIS
+License: Unknown
+Required attribution: San Miguel County
+
+us/co/sedgwick
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/statewide
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/summit
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/teller
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/washington
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/co/weld
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/hi/honolulu
+Website: http://gis.hicentral.com/data.html
+License: Unknown
+Required attribution: City of Honolulu
+
+us/hi/kauai
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/hi/maui
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/id/ada
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/id/canyon
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/id/caribou
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/id/clearwater
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/id/custer
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/id/fremont
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/id/jefferson
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/id/kootenai
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/id/madison
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/beaverhead
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/big_horn
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/blaine
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/broadwater
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/carbon
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/carter
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/cascade
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/chouteau
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/custer
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/daniels
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/dawson
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/deer_lodge
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/fallon
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/fergus
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/flathead
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/gallatin
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/garfield
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/glacier
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/golden_valley
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/granite
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/hill
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/jefferson
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/judith_basin
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/lake
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/liberty
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/madison
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/mccone
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/meagher
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/mineral
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/missoula
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/musselshell
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/petroleum
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/phillips
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/pondera
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/powder_river
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/powell
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/prairie
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/ravalli
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/richland
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/roosevelt
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/rosebud
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/sheridan
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/silverbow
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/statewide
+Website: http://geoinfo.msl.mt.gov/home/msdi/structures_and_addresses.aspx
+License: Unknown
+Required attribution: Yes
+
+us/mt/stillwater
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/sweet_grass
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/teton
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/toole
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/treasure
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/valley
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/wheatland
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/wibaux
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/mt/yellowstone
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nm/albuquerque
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nm/city_of_farmington
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nm/city_of_ruidoso
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nm/city_of_santa_fe
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nm/de_baca
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nm/eddy
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nm/lincoln
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nm/los_alamos
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nm/luna
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nm/taos
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nm/torrance
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nm/valencia
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nv/clark
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nv/elko
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nv/eureka
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nv/henderson
+Website: Unknown
+License: http://www.cityofhenderson.com/gis/disclaimer.php
+Required attribution: Yes
+
+us/nv/lander
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nv/las_vegas
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nv/lincoln
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nv/mineral
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/nv/nye
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/baker
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/city_of_albany
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/city_of_corvallis
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/clackamas
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/clatsop
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/coos
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/curry
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/deschutes
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/douglas
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/grant
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/gresham
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/hood_river
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/jackson
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/jefferson
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/klamath
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/lane
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/linn
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/malheur
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/marion
+Website: http://gis.co.marion.or.us/GISDownload/gisdownload.aspx
+License: Unknown
+Required attribution: Yes
+
+us/or/marion_and_polk
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/multnomah
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/portland
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/sherman
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/umatilla
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/or/yamhill
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ut/city_of_morgan
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ut/city_of_provo
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/ut/statewide
+Website: https://gis.utah.gov/data/location/address-data/#AddressPoints
+License: https://creativecommons.org/licenses/by/4.0/
+Required attribution: Yes
+
+us/wa/asotin
+Website: http://www.co.asotin.wa.us/public-works-gis/county-road-maps/
+License: Unknown
+Required attribution: Yes
+
+us/wa/city_of_richland
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wa/city_of_snohomish
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wa/city_of_spokane
+Website: https://my.spokanecity.org/opendata/gis/data/
+License: Indemnification (https://my.spokanecity.org/opendata/gis/data/#disclaimer)
+Required attribution: Yes
+
+us/wa/city_of_tacoma
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wa/clallam
+Website: http://www.clallam.net/maps/mapdata.html
+License: http://www.clallam.net/maps/parcels.html
+Required attribution: Yes
+
+us/wa/clark
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wa/douglas
+Website: http://www.douglascountywa.net/departments/tls/gis/
+License: http://www.douglascountywa.net/departments/tls/gis/
+Required attribution: Yes
+
+us/wa/franklin
+Website: http://franklingis.org/
+License: http://gis.co.franklin.wa.us/datadisclaimer.shtml
+Required attribution: Yes
+
+us/wa/island
+Website: http://www.islandcountyassessor.com/about-us/gis-mapping/arcgis-explorer-interactive-mapping-viewer/
+License: http://www.islandcountyassessor.com/about-us/gis-mapping/arcgis-explorer-interactive-mapping-viewer/
+Required attribution: Yes
+
+us/wa/jefferson
+Website: https://hub.arcgis.com/datasets/b3654c5205da4e05b5e63f3d04b0ebc1_19
+License: http://www.co.jefferson.wa.us/idms/mapserver.shtml
+Required attribution: Yes
+
+us/wa/king
+Website: http://www5.kingcounty.gov/gisdataportal/Default.aspx
+License: http://www5.kingcounty.gov/gisdataportal/
+Required attribution: Yes
+
+us/wa/kitsap
+Website: http://www.kitsapgov.com/gis/metadata/
+License: http://www.kitsapgov.com/county/disclaimer.htm
+Required attribution: Yes
+
+us/wa/lewis
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wa/pacific
+Website: http://www.co.pacific.wa.us/gis/DesktopGIS/WEB/index.html
+License: http://www.co.pacific.wa.us/gis/DesktopGIS/WEB/index.html
+Required attribution: Yes
+
+us/wa/pend_oreille
+Website: https://gis.pendoreilleco.org/POCGISWeb/
+License: Unknown
+Required attribution: Yes
+
+us/wa/pierce
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wa/skagit
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wa/snohomish
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wa/snohomish_county
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wa/thurston
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wa/walla_walla
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wa/yakima
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wy/albany
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wy/carbon
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wy/city_of_sundance
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wy/converse
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wy/crook
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wy/fremont
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wy/laramie
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wy/lincoln
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wy/natrona
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wy/park
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wy/statewide
+Website: Unknown
+License: Unknown
+Required attribution: Yes
+
+us/wy/sublette
+Website: Unknown
+License: Unknown
+Required attribution: Yes

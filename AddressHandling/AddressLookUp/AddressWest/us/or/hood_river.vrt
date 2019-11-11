@@ -1,0 +1,8 @@
+<OGRVRTDataSource>
+    <OGRVRTLayer name="hood_river">
+        <SrcDataSource relativeToVRT="1">hood_river.csv</SrcDataSource>
+        <GeometryType>wkbPoint</GeometryType>
+        <LayerSRS>EPSG:4326</LayerSRS>
+        <GeometryField encoding="PointFromColumns" reportSrcColumn="FALSE" x="LON" y="LAT"/>
+    </OGRVRTLayer>
+</OGRVRTDataSource>

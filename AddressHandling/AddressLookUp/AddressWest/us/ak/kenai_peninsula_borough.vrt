@@ -1,0 +1,8 @@
+<OGRVRTDataSource>
+    <OGRVRTLayer name="kenai_peninsula_borough">
+        <SrcDataSource relativeToVRT="1">kenai_peninsula_borough.csv</SrcDataSource>
+        <GeometryType>wkbPoint</GeometryType>
+        <LayerSRS>EPSG:4326</LayerSRS>
+        <GeometryField encoding="PointFromColumns" reportSrcColumn="FALSE" x="LON" y="LAT"/>
+    </OGRVRTLayer>
+</OGRVRTDataSource>
