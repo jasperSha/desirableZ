@@ -8,8 +8,8 @@ zestimate_url = 'https://www.zillow.com/webservice/GetZestimate.htm'
 deepsearch_url = 'https://zillow.com/webservice/GetDeepSearchResults.htm'
 
 zpid = '21212400'
-deep_citystatezip = 'Anaheim+CA'
-deep_address = '2029+W+Niobe+Ave'
+deep_citystatezip = 'North+Pole+AK'
+deep_address = '1101+n+star+dr'
 
 #default property values
 propertyDefaults = {
@@ -92,7 +92,7 @@ deepPropAttr = (
 if __name__=='__main__':
     zillowProperty = zo.PropertyZest(propertyDefaults)
     ds(key, deepsearch_url, deep_citystatezip, deep_address, zillowProperty, deepPropAttr)
-    x = vars(zillowProperty)['zpid']
+    x = vars(zillowProperty)
 
-    zt(key, x, zestimate_url, zillowProperty, zestPropAttr)
+    #zt(key, x, zestimate_url, zillowProperty, zestPropAttr)
     print(vars(zillowProperty))
