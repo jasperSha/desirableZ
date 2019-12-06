@@ -1,2 +1,0 @@
-# desirableZ
-housing heatmap

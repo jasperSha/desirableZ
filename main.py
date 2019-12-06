@@ -2,18 +2,19 @@ from zillowObject import zillowObject as zo
 from zestimate import get_zestimate as zt
 from deepsearchresults import deep_search as ds
 
-key = 'X1-ZWz1hgrt0pjaiz_1brbp'
+key = 'X1-ZWz1hgrt0pjaiz_1brbp' #zillow API key
 
 zestimate_url = 'https://www.zillow.com/webservice/GetZestimate.htm'
 deepsearch_url = 'https://zillow.com/webservice/GetDeepSearchResults.htm'
 
-zpid = '21212400'
-deep_citystatezip = 'North+Pole+AK'
-deep_address = '1101+n+star+dr'
+zpid = '21212400' #propertyID found after zestimate
+deep_citystatezip = 'Long+Beach+CA' #for deepsearch, only city/state abbreviation
+deep_address = '62nd+Place'#also for deepsearch
 
 #default property values
 propertyDefaults = {
-            'amount': 0,
+            'amount': 0, # property value
+            'rentzestimate':0,
             'valueChange': 0,
             'low': 0,
             'high': 0,
@@ -49,6 +50,7 @@ propertyDefaults = {
 #property attributes unique to zestimate call
 zestPropAttr = (
             'amount',
+            'rentzestimate',
             'valueChange',
             'low',
             'high',
@@ -90,9 +92,12 @@ deepPropAttr = (
 
 
 if __name__=='__main__':
-    zillowProperty = zo.PropertyZest(propertyDefaults)
-    ds(key, deepsearch_url, deep_citystatezip, deep_address, zillowProperty, deepPropAttr)
-    x = vars(zillowProperty)
+    zillowProperty = zo.PropertyZest(propertyDefaults) #init zillowProperty as a zillowObject(init with given dict)
 
-    #zt(key, x, zestimate_url, zillowProperty, zestPropAttr)
+    #deepsearch done first
+    ds(key, deepsearch_url, deep_citystatezip, deep_address, zillowProperty, deepPropAttr) 
+    x = vars(zillowProperty)#just checking status of zillowProperty
+    
+    #getting zestimate next, after grabbing propertyID
+    zt(key, x['zpid'], zestimate_url, zillowProperty, zestPropAttr) 
     print(vars(zillowProperty))

@@ -20,13 +20,23 @@ crime_types = [
 
 kingCountySheriffs = requests.get('https://moto.data.socrata.com/resource/p6kq-vsa3.json', headers=headers)
 
-data = json.loads(kingCountySheriffs.text)
-for i in range(0, 20):
-    print(data[i]['incident_datetime'], data[i]['incident_type_primary'], '+',
-          data[i]['parent_incident_type'])
+##data = json.loads(kingCountySheriffs.text)
+##output = ''
+##for i in range(0, 100):
+##    points = ''
+##    points = data[i]['latitude']
+##    points += data[i]['longitude']
+##    
+##    output = (data[i]['incident_datetime'][0:7] + ' '  + points  + '  '  + data[i]['incident_type_primary'][4:])
+##    print(output)
 
 morganHill = requests.get('https://moto.data.socrata.com/resource/s9ji-4jh6.json', headers=headers)
 
 data = json.loads(morganHill.text)
-for i in range(0, 100):
-    print(data[i]['incident_datetime'], data[i]['incident_description'])
+output=''
+for i in range(0, 10):
+    points = ''
+    points = data[i]['latitude'] + data[i]['longitude']
+    
+    print(data[i]['incident_datetime'][0:7] + ' ' + points + data[i]['incident_description'])
+

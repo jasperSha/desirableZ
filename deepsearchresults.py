@@ -1,6 +1,6 @@
 import requests
 import xml.etree.ElementTree as ET
-
+#takes zillowObject, updates its dict with deep_search specific attributes
 def deep_search(key, url, citystatezip, address, zillowObject, deepPropAttr):
 
     retrievalCategories = vars(zillowObject)
