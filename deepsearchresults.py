@@ -12,7 +12,7 @@ def deep_search(key, url, citystatezip, address, zillowObject, deepPropAttr):
 
     response = requests.get(url, params=parameters)
     root = ET.fromstring(response.content)
-
+    print("Grabbing deepsearch values now...")
     for category in deepPropAttr:
         for child in root.iter('%s' % category):
             retrievalCategories['%s'%category] = child.text

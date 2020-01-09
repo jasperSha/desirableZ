@@ -14,6 +14,7 @@ def get_zestimate(key, zpid, url, zillowObject, zestPropAttr):
     response = requests.get(url,params = parameters)
     root = ET.fromstring(response.content)
     
+    print("Grabbing zestimate attributes now...")
     for category in zestPropAttr:
         for child in root.iter('%s'%category):
             retrievalCategories['%s'%category] = child.text
