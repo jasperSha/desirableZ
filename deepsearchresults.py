@@ -18,6 +18,6 @@ def deep_search(key, url, citystatezip, address, zillowObject, deepPropAttr):
             retrievalCategories['%s'%category] = child.text
 
     zillowObject.update(**retrievalCategories)
-    
+    print('Property Values updated by DeepSearch.')
     return zillowObject
 

@@ -1,14 +1,14 @@
 import requests
 import xml.etree.ElementTree as ET
-from zillowObject import zillowObject
-#take zillowObject, update with zestimate specific attributes (requires zpid to access)
+#take zillowObject, update with zestimate specific attributes 
+#(requires zpid to access)
 def get_zestimate(key, zpid, url, zillowObject, zestPropAttr):
     
     retrievalCategories = vars(zillowObject)
     parameters = {
         'zws-id':key,
         'zpid':zpid,
-        'rentzestimate':'true'
+        'rentzestimate':True #necessary for rental value
     }
     
     response = requests.get(url,params = parameters)
@@ -19,5 +19,6 @@ def get_zestimate(key, zpid, url, zillowObject, zestPropAttr):
             retrievalCategories['%s'%category] = child.text
 
     zillowObject.update(**retrievalCategories)
+    print('Property Values updated by Zestimate.')
     
     return zillowObject

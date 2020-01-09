@@ -7,23 +7,20 @@ key = 'X1-ZWz1hgrt0pjaiz_1brbp' #zillow API key
 zestimate_url = 'https://www.zillow.com/webservice/GetZestimate.htm'
 deepsearch_url = 'https://zillow.com/webservice/GetDeepSearchResults.htm'
 
-zpid = '21212400' #propertyID found after zestimate
-deep_citystatezip = 'Long+Beach+CA' #for deepsearch, only city/state abbreviation
-deep_address = '62nd+Place'#also for deepsearch
+zpid = '20522179' #propertyID found after deepsearch
+deep_citystatezip = 'Beverly+Hills+CA' #for deepsearch, only city/state abbreviation
+deep_address = '1027+Summit+Dr'#also for deepsearch
 
 #default property values
 propertyDefaults = {
             'amount': 0, # property value
-            'rentzestimate':0,
             'valueChange': 0,
+                #30-day
             'low': 0,
             'high': 0,
+                #valuation range(low to high)
             'percentile': 0,
             'zindexValue': 0,
-            'zipcode-id': '',
-            'city-id': '',
-            'county-id': '',
-            'state-id': '',
 
             'last-updated': '',
             'street': '',
@@ -34,8 +31,11 @@ propertyDefaults = {
             'longitude': '',
 
             'FIPScounty': '',
-            'useCode': '',
+            'useCode': '', 
+                 #specifies type of home:
+                 #duplex, triplex, condo, mobile, timeshare, etc
             'taxAssessmentYear': '',
+                #year of most recent tax assessment
             'taxAssessment': 0,
 
             'yearBuilt': '',
@@ -50,16 +50,11 @@ propertyDefaults = {
 #property attributes unique to zestimate call
 zestPropAttr = (
             'amount',
-            'rentzestimate',
             'valueChange',
             'low',
             'high',
             'percentile',
-            'zindexValue',
-            'zipcode-id',
-            'city-id',
-            'county-id',
-            'state-id'
+            'zindexValue'
         )
 
 #property attributes unique to deepsearch call
@@ -85,7 +80,8 @@ deepPropAttr = (
             'finishedSqFt',
             'bathrooms',
             'bedrooms',
-
+            
+            
             'lastSoldDate',
             'lastSoldPrice'
         )
@@ -100,4 +96,7 @@ if __name__=='__main__':
     
     #getting zestimate next, after grabbing propertyID
     zt(key, x['zpid'], zestimate_url, zillowProperty, zestPropAttr) 
-    print(vars(zillowProperty))
+    
+    #convert to accessible dict
+    x = vars(zillowProperty)
+    
