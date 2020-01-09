@@ -99,4 +99,4 @@ if __name__=='__main__':
     
     #convert to accessible dict
     x = vars(zillowProperty)
-    
+    print(x)

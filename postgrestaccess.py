@@ -1,5 +1,5 @@
 import psycopg2
-from psycopg2.extensions import AsIs
+from psycopg2 import sql
 #pipeline set up for funneling addresses into postgres database
 
 
@@ -32,35 +32,35 @@ try:
                       'zipcode': '90210', 
                       'city': 'Beverly Hills', 
                       'state': 'CA', 
-#                      'latitude': '34.086603', 
-#                      'longitude': '-118.420344', 
+                      'latitude': '34.086603', 
+                      'longitude': '-118.420344', 
                       'FIPScounty': '6037', 
                       'useCode': 'SingleFamily', 
                       'taxAssessmentYear': '2019', 
-                      'taxAssessment': '1.27449E7', 
+                      'taxAssessment': '1.27449E7', #also need to format into int
                       'yearBuilt': '1946', 
                       'lotSizeSqFt': '29938', 
                       'finishedSqFt': '6456', 
-                      'bathrooms': '8.0', 
+                      'bathrooms': '8', #need to format into int, originally float
                       'bedrooms': '5', 
                       'lastSoldDate': '01/01/2018', 
                       'lastSoldPrice': '26500', 
                       'zpid': '20522179'
-                      }
+    }
     
-    zillowProperty['"last-updated"'] = zillowProperty.pop('last-updated')
+    #combining long/lat into Point datatype
+    zillowProperty['longitude_latitude'] = 'SRID=4326;POINT(%s %s)' % (zillowProperty['longitude'], zillowProperty['latitude'])
+    del zillowProperty['longitude']
+    del zillowProperty['latitude']
     
-    sql_property = {k.lower(): v for k, v in zillowProperty.items()}
-    print('lowercased all the keys')
-    zillowColumns = sql_property.keys()
-    print('columns set: ', zillowColumns)
-    zillowValues = [sql_property[column] for column in zillowColumns]
-    print('values set: ', zillowValues)
+    #funneling dict into sql statement
+    q2 = sql.SQL("INSERT INTO zillow_property ({}) values ({})").format(
+                  sql.SQL(', ').join(map(sql.Identifier, zillowProperty)),
+                  sql.SQL(', ').join(map(sql.Placeholder, zillowProperty)
+        ))
+    # print(q2.as_string(connection))
+    cursor.execute(q2, zillowProperty)
     
-    new_property_sql = (""" 
-                  INSERT INTO zillow_property (%s) values %s
-                  """)
-    cursor.execute(new_property_sql, (AsIs(','.join(zillowColumns)), tuple(zillowValues)))
     
     
     connection.commit()
@@ -77,12 +77,6 @@ try:
 #    connection.commit()
     
     
-    
-    #list of zillowProperty attributes for database column matching
-    property_attribute_list = (
-            
-            
-            )
     
     
     
