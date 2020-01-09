@@ -1,6 +1,7 @@
-from zillowObject import zillowObject as zo
-from zestimate import get_zestimate as zt
-from deepsearchresults import deep_search as ds
+from zillowObject import zillowObject
+from zestimate import get_zestimate
+from deepsearchresults import deep_search
+from postgrestaccess import record_zillowProperty
 
 key = 'X1-ZWz1hgrt0pjaiz_1brbp' #zillow API key
 
@@ -88,15 +89,17 @@ deepPropAttr = (
 
 
 if __name__=='__main__':
-    zillowProperty = zo.PropertyZest(propertyDefaults) #init zillowProperty as a zillowObject(init with given dict)
+    zillowProperty = zillowObject.PropertyZest(propertyDefaults) #init zillowProperty as a zillowObject(init with given dict)
 
     #deepsearch done first
-    ds(key, deepsearch_url, deep_citystatezip, deep_address, zillowProperty, deepPropAttr) 
+    deep_search(key, deepsearch_url, deep_citystatezip, deep_address, zillowProperty, deepPropAttr) 
     x = vars(zillowProperty)#just checking status of zillowProperty
     
     #getting zestimate next, after grabbing propertyID
-    zt(key, x['zpid'], zestimate_url, zillowProperty, zestPropAttr) 
+    get_zestimate(key, x['zpid'], zestimate_url, zillowProperty, zestPropAttr) 
     
     #convert to accessible dict
     x = vars(zillowProperty)
-    print(x)
+    
+    #upload property to postgresql db
+    record_zillowProperty(x)
