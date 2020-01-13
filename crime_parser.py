@@ -1,15 +1,15 @@
 import requests
 import json
-import fnmatch
+from sodapy import Socrata #module specific to socrata data site
 
 
-keyID = '52xjxy3zffcgnbf7mcatgduc0'
-keySecret = '5w6zx1pg22lf1c8lgki6jepgl5amkkofrtzabhrnbnnmlio6v2'
+#only appToken needed to prevent throttle limits
+appToken = 'WutGZxIN3jEBDOZEqrzL5v82Q'
 
-headers = {
-    'keyID': keyID,
-    'keySecret': keySecret
-    }
+
+#currently heavily restricted on these datasets
+
+
 
 crime_types = [
     'Assault',
@@ -17,26 +17,18 @@ crime_types = [
     'Assault with Deadly Weapon'
     ]
 
-
-kingCountySheriffs = requests.get('https://moto.data.socrata.com/resource/p6kq-vsa3.json', headers=headers)
-
-##data = json.loads(kingCountySheriffs.text)
-##output = ''
-##for i in range(0, 100):
-##    points = ''
-##    points = data[i]['latitude']
-##    points += data[i]['longitude']
-##    
-##    output = (data[i]['incident_datetime'][0:7] + ' '  + points  + '  '  + data[i]['incident_type_primary'][4:])
-##    print(output)
-
-morganHill = requests.get('https://moto.data.socrata.com/resource/s9ji-4jh6.json', headers=headers)
-
-data = json.loads(morganHill.text)
-output=''
-for i in range(0, 10):
-    points = ''
-    points = data[i]['latitude'] + data[i]['longitude']
+client = Socrata('data.lacity.org',
+                  appToken
+                  )
+endpoints = [
+    'tt5s-y5fc',#national police department crime rates
+    'yi8n-dgju' #LA crime 2010 to present
     
-    print(data[i]['incident_datetime'][0:7] + ' ' + points + data[i]['incident_description'])
+    
+    ]
 
+results = client.get('63jg-8b9z', limit=2000)
+
+
+for dictionary in results:
+    print(dictionary['location'])
