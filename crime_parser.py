@@ -12,7 +12,7 @@ client = Socrata('data.lacity.org',
                   appToken
                   )
 lacityData_categories = [
-    
+    'dr_no', #division record
     'date_occ',
     'date_rptd',
     
