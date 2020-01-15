@@ -8,12 +8,12 @@ key = 'X1-ZWz1hgrt0pjaiz_1brbp' #zillow API key
 zestimate_url = 'https://www.zillow.com/webservice/GetZestimate.htm'
 deepsearch_url = 'https://zillow.com/webservice/GetDeepSearchResults.htm'
 
-zpid = '20522179' #propertyID found after deepsearch
-deep_citystatezip = 'Beverly+Hills+CA' #for deepsearch, only city/state abbreviation
-deep_address = '1027+Summit+Dr'#also for deepsearch
+deep_citystatezip = 'Palos Verdes Peninsula CA' #for deepsearch, only city/state abbreviation
+deep_address = '1+Dapplegray+Lane'#also for deepsearch
 
 #default property values
 propertyDefaults = {
+            'zpid':'',
             'amount': 0, # property value
             'valueChange': 0,
                 #30-day
@@ -93,13 +93,20 @@ if __name__=='__main__':
 
     #deepsearch done first
     deep_search(key, deepsearch_url, deep_citystatezip, deep_address, zillowProperty, deepPropAttr) 
-    x = vars(zillowProperty)#just checking status of zillowProperty
     
-    #getting zestimate next, after grabbing propertyID
-    get_zestimate(key, x['zpid'], zestimate_url, zillowProperty, zestPropAttr) 
     
-    #convert to accessible dict
     x = vars(zillowProperty)
     
-    #upload property to postgresql db
-    record_zillowProperty(x)
+    if x['zpid']!='': #making sure property is listed
+        zpid = x['zpid']
+        get_zestimate(key, zpid, zestimate_url, zillowProperty, zestPropAttr) 
+        
+        x = vars(zillowProperty)
+        
+        #upload property to postgresql db
+        # record_zillowProperty(x)
+    
+    #throwing this into a loop later
+        
+        
+        

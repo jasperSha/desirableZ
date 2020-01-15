@@ -1,61 +1,69 @@
 import csv
-import pickle
-import os
-import glob
+from postgrestaccess import record_LA_addresses as rla
 
 #header of csv is
 # LON, LAT, NUMBER, STREET, UNIT, CITY, DISTRICT, REGION, POSTCODE, ID, HASH
 def address_parse(filename):
     
     with open(filename, 'rt', encoding='utf-8') as csv_file:
+        print('opening file..')
         csv_reader = csv.reader(csv_file, delimiter=',')
         line_count = 0
-        address = {}
-        s =''
+        
+        
+        #number of rows 2766584
+        
+        address_list = []
+        repeats = []
+        
+        address_count = 0
+        
+        for skip in range(3): #skipping garbage data
+            next(csv_reader)
+        num =''
+        
         for row in csv_reader:
-            if line_count == 0 or line_count == 1: #first two lines null
-                line_count += 1
-                continue
-            if line_count == 2:
-                line_count += 1
-                continue
-            if line_count == 500:
+            if line_count == 2766584:
                 break
-            d = row[3].replace(' ','+')#number+street
-            f = row[5].replace(' ','+')
-            s = row[2] + '+' + d 
-            if s not in address:
-                address.update({('%s'%s):('%s+CA'%f.strip())})
-                #row[5] is the name of city, stored as dict value, row 0, 1 = long/lat
-                line_count += 1
-            else:
-                line_count += 1
-                continue
-        #address returned as ['number, street':'city, LONG/LAT']
-        return address
+            
+            address = {
+            'number_street':'',
+            'city_state':''
+            }
+            
+            
+            #have to refactor; set len(repeats) to at most 10 for checking
+            #after 10 addresses, reset the repeat list
+            
+            if len(repeats) >=20:
+                del repeats[:]
+           
+            city = row[5]            
+            street = row[3]
+            num = row[2] + ' ' + street
+            
+            if num not in repeats: #checking on repeats makes this N^2 i think
+                address_count += 1
+                address.update(number_street = num)
+                address.update(city_state = ('%s CA'%city.strip()))
+                
+                address_list.append(address)
+                repeats.append(num)
+                print(address_count, ' addresses added')
+            
+            line_count += 1
+        print('address list constructed, returning..')
+        return address_list
 
 
-city_addresses = []
 pathname = '/Users/Jasper/Documents/Addresses/AddressHandling/AddressLookUp/AddressWest/us/ca/'
 path = ('%slos_angeles.csv' % pathname)
 
 
 x = address_parse(path)
 
-for key, value in x.items():
-    print('address:', key, 'city:', value)
-##for file in glob.glob(path):
-##    x = address_parse(file)
-##    city_addresses.append(x)
-
-
-
-##filename = ('%s'%address[0])
-##outfile = open(filename, 'wb')
-##pickle.dump(address, outfile)
-##outfile.close()
-##
-##infile = open('ANAHEIM', 'rb')
-##new_address = pickle.load(infile)
-##infile.close()
-
+rla(x)    
+    
+    
+    
+    
