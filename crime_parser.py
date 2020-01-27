@@ -1,6 +1,11 @@
 from sodapy import Socrata #module specific to socrata data site
 import pandas as pd
 
+from sqlalchemy import create_engine
+import psycopg2
+import io
+
+
 
 
 #only appToken needed to prevent throttle limits
@@ -11,54 +16,77 @@ lacityData = '63jg-8b9z'
 client = Socrata('data.lacity.org',
                   appToken
                   )
-lacityData_categories = [
-    'dr_no', #division record
-    'date_occ',
-    'date_rptd',
-    
-    'area',
-    'area_name',
-    'location',
-    'cross_street',
-    
-    'lat',
-    'lon',
-    
-    'crm_cd', #crime code
-    'crm_cd_1', #crime code for severity: 1 most serious, 4 least serious
-    'crm_cd_2',
-    'crm_cd_3',
-    'crm_cd_4',
-    
-    'crm_cd_desc',
-    'mocodes',
-    
-    'vict_descent',
-    'vict_age',
-    'vict_sex',
-    
-    'premis_cd', #location or structure
-    'premis_desc',
-    
-    'weapon_desc', #weapon description
-    'weapon_used_cd',
-    
-    'status',
-    'status_desc',
-     
-    ]
 
-# endpoints = [
-#     'tt5s-y5fc',#national police department crime rates
-#     'yi8n-dgju' #LA crime 2010 to present
-    
-    
-#     ]
+query = """ 
+select
+    dr_no,
+    date_rptd,
+    date_occ,
+    time_occ,
+    area_name,
+    lat,
+    lon,
+    rpt_dist_no,
+    crm_cd_desc,
+    vict_descent,
+    vict_age,
+    vict_sex,
+    premis_cd,
+    premis_desc,
+    weapon_desc,
+    status,
+    status_desc
+limit
+    2000000
 
-results = client.get(lacityData, limit=2000)
+"""
+
+
+results = client.get(lacityData, query=query)
 results_df = pd.DataFrame.from_records(results)
 
+pd.set_option('max_colwidth', 100)
+pd.set_option('display.max_columns', 19)
 
-print(results_df.columns)
+
+#formatting datetime
+
+for row in results_df.index:
+    results_df.at[row, 'date_rptd'] = results_df.at[row,'date_rptd'][:10]
+    results_df.at[row, 'date_occ'] = results_df.at[row, 'date_occ'][:10]
+    results_df.at[row, 'time_occ'] = results_df.at[row, 'time_occ'][:2] + ':' + results_df.at[row, 'time_occ'][2:]
     
-# print(results_df['crm_cd_1'].value_counts())
+    if results_df.at[row, 'vict_age'] == '0':
+        results_df.at[row,'vict_age'] = ""
+
+
+#formatting long/lat to comply with srid
+results_df['longitude_latitude'] = 'SRID=4326;POINT(' + results_df['lon'].map(str) + ' ' + results_df['lat'].map(str) + ')'
+del results_df['lon']
+del results_df['lat']
+
+print(results_df.head())
+
+
+engine = create_engine('postgresql+psycopg2://postgres:icuv371fhakletme@localhost:5432/zillow_objects')
+
+results_df.head(0).to_sql('la_crime', engine, if_exists='append', index=False)
+
+conn = engine.raw_connection()
+cur = conn.cursor()
+output = io.StringIO()
+results_df.to_csv(output,sep='\t', header=False, index=False)
+output.seek(0)
+cur.copy_from(output, 'la_crime', null="")
+conn.commit()
+    
+    
+
+
+
+
+
+
+
+
+

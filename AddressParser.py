@@ -49,11 +49,11 @@ def address_parse(filename):
                 
                 address_list.append(address)
                 repeats.append(num)
-                print(address_count, ' addresses added')
+                # print(address_count, ' addresses added')
             
             line_count += 1
-        print('address list constructed, returning..')
-        return address_list
+        # print('address list constructed, returning..')
+        return address_list #list of dictionaries
 
 
 pathname = '/Users/Jasper/Documents/Addresses/AddressHandling/AddressLookUp/AddressWest/us/ca/'
@@ -61,8 +61,9 @@ path = ('%slos_angeles.csv' % pathname)
 
 
 x = address_parse(path)
+print(type(x))
 
-rla(x)    
+# rla(x)    #upload addresses to postgresql database
     
     
     

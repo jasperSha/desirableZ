@@ -108,5 +108,8 @@ if __name__=='__main__':
     
     #throwing this into a loop later
         
+
+#data buckets
+        
         
         

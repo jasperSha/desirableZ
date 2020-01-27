@@ -1,5 +1,7 @@
 import psycopg2
+import io
 from psycopg2 import sql
+from sqlalchemy import create_engine
 #pipeline set up for funneling addresses into postgres database
 
 def record_zillowProperty(zillowProperty):
@@ -87,11 +89,8 @@ def record_LA_addresses(parsed_address_list):
             ))
         
             cursor.execute(q2, parsed_address)
-            connection.commit()
-        
-    
-    
-    
+            connection.commit()  
+            
     except (Exception, psycopg2.Error) as error :
         print ("Error while connecting to PostgreSQL", error)
     finally:
@@ -100,3 +99,6 @@ def record_LA_addresses(parsed_address_list):
             cursor.close()
             connection.close()
             print("PostgreSQL connection is closed")
+            
+            
+
