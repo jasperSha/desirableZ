@@ -16,7 +16,7 @@ For call:
     tags:
         gsId,
         name,
-        type(private/public),
+        type(private/public/charter),
         gradeRange,
         enrollment,
         gsRating (1-10 scale; 1-4: below average, 7-10: above average),
@@ -37,39 +37,37 @@ For call:
         schoolStatsLink
 
 """
-
-def find_nearby_schools(key, state, city, school, limit=1):
+#list of schools closest to center of city, or lat/lon selected
+def find_nearby_schools(key, state, city, limit=1):
     try:
         url = 'https://api.greatschools.org/schools/nearby'
         params = {
             'key': key,
             'state': state,
             'city':city,
-            'limit':limit
+            'limit':limit,
+            'radius':50
             }
-        attributes = vars(school)
-        list_of_schools = []
+        schools_by_gsID = []
         
         
         response = requests.get(url, params=params)
         root = ET.fromstring(response.content)
-        print('finding schools near..', city)
+        print('finding schools by gsID near..', city)
 
+        
+        for child in root.iter('gsId'):
+            schools_by_gsID.append(child.text)
 
+        
 
-        for attr in attributes:
-            for child in root.iter('%s'%attr):
-                attributes['%s'%attr] = child.text
-                school.update(**attributes)
-                list_of_schools.append(school)
-
-        return list_of_schools
+        return schools_by_gsID
             
     except(Exception, requests.ConnectionError):
         print('Connection error..')
         
         
-
+#list of all schools in a city
 def browse_schools(key, state, city):
     try:
         url = 'https://api.greatschools.org/schools/%s/%s'%(state,city)
@@ -87,7 +85,7 @@ def browse_schools(key, state, city):
     except (Exception, requests.ConnectionError):
         print('Connection error...')
 
-
+#profile data for a specific school
 def school_profile(gsID, key, state):
     try:
         url = 'https://api.greatschools.org/schools/%s/%s'%(state, gsID)
@@ -105,15 +103,15 @@ def school_profile(gsID, key, state):
     except (Exception, requests.ConnectionError):
         print('Connection error...')
         
-        
-def school_search(key, state, query, levelCode='', limit=1):
+#returns list of schools based on query    
+def school_search(key, state, query, levelCode='', limit=2):
     try:
         url = 'https://api.greatschools.org/search/schools/'
         params = {
             'key':key,
             'state':state,
-            'q':query,
-            'levelCode':levelCode, #e.g. 'elementary-schools' or 'middle-schools'
+            'q':query, #as in the name of the school, e.g. Alameda High School
+            # 'levelCode':'', #e.g. 'elementary-schools' or 'middle-schools'
             'limit':limit
             }
         
@@ -122,11 +120,14 @@ def school_search(key, state, query, levelCode='', limit=1):
         print('looking for:', query)
         
         
+        for child in root.iter('gsRating'):
+            print(child.text)
         for child in root.iter('name'):
             print(child.text)
     except (Exception, requests.ConnectionError):
         print('Connection error...')
-        
+  
+#list of most recent reviews fora school      
 def school_reviews(key, state, city, topicID, gsID, school='school',limit=1):   
     try:
         #school selects specific school(by gsID) or all schools in city
@@ -150,7 +151,9 @@ def school_reviews(key, state, city, topicID, gsID, school='school',limit=1):
             print(child.text)
     except (Exception, requests.ConnectionError):
         print('Connection error...')
-        
+
+
+#list of topics available for topical reviews        
 def review_topics(key):
     try:
         url = 'https://api.greatschools.org/reviews/reviewTopics'
@@ -168,7 +171,9 @@ def review_topics(key):
     except (Exception, requests.ConnectionError):
         print('Connection error...')
         
-        
+
+
+#returns census data for a specific school        
 def school_census_data(key, state, gsID):
     try:
         url = 'https://api.greatschools.org/school/census/%s/%s'%(state, gsID)
@@ -184,7 +189,9 @@ def school_census_data(key, state, gsID):
             print(child.text)
     except (Exception, requests.ConnectionError):
         print('Connection error...')
-        
+
+
+#returns info in a city        
 def city_overview(key, state, city):
     try:
         url = 'https://api.greatschools.org/cities/%s/%s'%(state, city)
@@ -200,6 +207,8 @@ def city_overview(key, state, city):
     except (Exception, requests.ConnectionError):
         print('Connection error...')
 
+
+#returns list of cities near specified city
 def nearby_cities(key, state, city, radius=15):
     try:
         url = 'https://api.greatschools.org/cities/nearby/%s/%s'%(state, city) 
@@ -216,7 +225,9 @@ def nearby_cities(key, state, city, radius=15):
             print(child.text)
     except (Exception, requests.ConnectionError):
         print('Connection error...')
-        
+
+
+#list of school districts        
 def browse_districts(key, state, city):
     try:
         url = 'https://api.greatschools.org/districts/%s/%s'%(state, city)
@@ -236,7 +247,7 @@ def browse_districts(key, state, city):
 key = 'e5fef655bc40261cbfddccbf0888b926'
 city = 'Los-Angeles'
 state = 'CA'
-
+query = '90063'
 
 school_attributes = {
         'gsId':'',
@@ -261,18 +272,15 @@ school_attributes = {
         # 'distance':0, #(from center?),
         # 'schoolStatsLink':''
     }
-school = zillowObject.School(school_attributes)
 
 
-print(find_nearby_schools(key, state, city, school, limit=10))
+# schools =[]
 
+# schools = find_nearby_schools(key, state, city, 1000000)
 
-
-
-
-
-        
-        
+# print(len(schools))
+#total schools found in 50 mile radius of LA county center is ~5508
+school_search(key, state, query)
         
         
         
