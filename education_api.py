@@ -11,7 +11,6 @@ school census data provides data on ethnic distribution
 
 
 
-
 For call:
     tags:
         gsId,
@@ -98,7 +97,7 @@ def school_profile(gsID, key, state):
         print('looking up school associated with', gsID)
         
         
-        for child in root.iter('name'):
+        for child in root.iter('gsRating'):
             print(child.text)
     except (Exception, requests.ConnectionError):
         print('Connection error...')
@@ -251,20 +250,20 @@ query = '90063'
 
 school_attributes = {
         'gsId':'',
-        'name':'',
-        'public_private':'',
-        'gradeRange':'',
-        'enrollment':'',
-        'gsRating':0, #(1-10 scale; 1-4: below average, 7-10: above average),
-        'city':'',
-        'state':'',
+        # 'name':'',
+        # 'public_private':'',
+        # 'gradeRange':'',
+        # 'enrollment':'',
+        'gsRating':'', #(1-10 scale; 1-4: below average, 7-10: above average),
+        # 'city':'',
+        # 'state':'',
         # 'districtId':0,
         # 'district':'',
         # 'districtNCESId':0,
         # 'address':'',
         # 'ncesID':0,
-        # 'lat':0,
-        # 'lon':0,
+        'lat':0,
+        'lon':0,
         
         # 'overviewLink':'',
         # 'ratingsLink':'',
@@ -275,12 +274,27 @@ school_attributes = {
 
 
 # schools =[]
+#LA county is about 5500 schools
+list_of_schools = find_nearby_schools(key, state, city, 10)
 
-# schools = find_nearby_schools(key, state, city, 1000000)
+
+school_objects = []
+    
+for gsId in list_of_schools:
+    school = zillowObject.School(school_attributes)
+    school['gsId'].update(gsId)
+    school_objects.append(school)
+
+print(len(school_objects))
+
+
+
+
+    
 
 # print(len(schools))
 #total schools found in 50 mile radius of LA county center is ~5508
-school_search(key, state, query)
+# school_search(key, state, query)
         
         
         
