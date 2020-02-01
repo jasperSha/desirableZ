@@ -24,6 +24,8 @@ class School:
         return len(self.__dict__)
     def __delitem__(self, key):
         del self.__dict__[key]
+    def __iter__(self):
+        return iter(self.__dict__)
     def clear(self):
         return self.__dict__.clear()
     def copy(self):

@@ -37,7 +37,7 @@ For call:
 
 """
 #list of schools closest to center of city, or lat/lon selected
-def find_nearby_schools(key, state, city, limit=1):
+def find_nearby_schools(key, state, city, school_attributes, limit=1):
     try:
         url = 'https://api.greatschools.org/schools/nearby'
         params = {
@@ -47,20 +47,41 @@ def find_nearby_schools(key, state, city, limit=1):
             'limit':limit,
             'radius':50
             }
-        schools_by_gsID = []
+        school_profiles = []
         
+     
         
         response = requests.get(url, params=params)
         root = ET.fromstring(response.content)
         print('finding schools by gsID near..', city)
 
         
-        for child in root.iter('gsId'):
-            schools_by_gsID.append(child.text)
-
-        
-
-        return schools_by_gsID
+        for child in root.findall('school'):
+            school = zillowObject.School(school_attributes)
+            print('school object created')
+            
+            if child.find('gsRating') is None:
+                #private schools need manual entry due to null fields
+                school['type'] = child.find('type').text
+                school['gsId'] = child.find('gsId').text
+                school['gsRating'] = ''
+                school['lat'] = child.find('lat').text
+                school['lon'] = child.find('lon').text
+                school['name'] = child.find('name').text
+                
+            elif(child.find('type').text != 'private'):  
+                for attribute in school:
+                    school['%s'%attribute] = child.find('%s'%attribute).text
+            print('school with %s mapping' %school['gsId'])
+            school['longitude_latitude'] = 'SRID=4326;POINT(%s %s)' % (school['lon'], school['lat'])
+            print('updating longitude-latitude to conform to SRID')
+            del school['lat']
+            del school['lon']
+                
+            
+            school_profiles.append(school)
+    
+        return school_profiles
             
     except(Exception, requests.ConnectionError):
         print('Connection error..')
@@ -85,8 +106,9 @@ def browse_schools(key, state, city):
         print('Connection error...')
 
 #profile data for a specific school
-def school_profile(gsID, key, state):
+def school_profile(key, state, school):
     try:
+        gsID = school['gsId']
         url = 'https://api.greatschools.org/schools/%s/%s'%(state, gsID)
         params = {
             'key': key
@@ -97,8 +119,11 @@ def school_profile(gsID, key, state):
         print('looking up school associated with', gsID)
         
         
-        for child in root.iter('gsRating'):
-            print(child.text)
+        
+        # for location in root.iter('lat'):
+        #     school['lat'] = location.text
+        # for location in root.iter('lon'):
+        #     school['lon'] = location.text
     except (Exception, requests.ConnectionError):
         print('Connection error...')
         
@@ -126,7 +151,7 @@ def school_search(key, state, query, levelCode='', limit=2):
     except (Exception, requests.ConnectionError):
         print('Connection error...')
   
-#list of most recent reviews fora school      
+#list of most recent reviews for a school      
 def school_reviews(key, state, city, topicID, gsID, school='school',limit=1):   
     try:
         #school selects specific school(by gsID) or all schools in city
@@ -250,6 +275,8 @@ query = '90063'
 
 school_attributes = {
         'gsId':'',
+        'type':'',
+        'name':'',
         # 'name':'',
         # 'public_private':'',
         # 'gradeRange':'',
@@ -262,9 +289,8 @@ school_attributes = {
         # 'districtNCESId':0,
         # 'address':'',
         # 'ncesID':0,
-        'lat':0,
-        'lon':0,
-        
+        'lat':'',
+        'lon':''        
         # 'overviewLink':'',
         # 'ratingsLink':'',
         # 'reviewsLink':'',
@@ -275,18 +301,12 @@ school_attributes = {
 
 # schools =[]
 #LA county is about 5500 schools
-list_of_schools = find_nearby_schools(key, state, city, 10)
+list_of_schools = find_nearby_schools(key, state, city,school_attributes, 100)
 
 
-school_objects = []
-    
-for gsId in list_of_schools:
-    school = zillowObject.School(school_attributes)
-    school['gsId'].update(gsId)
-    school_objects.append(school)
-
-print(len(school_objects))
-
+for school in list_of_schools:
+    if school['gsRating'] is '':
+        print(school['name'])
 
 
 
