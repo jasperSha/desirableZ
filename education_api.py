@@ -1,5 +1,12 @@
 import requests
 import xml.etree.ElementTree as ET
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sqlalchemy import create_engine
+import psycopg2
+import io
+
 
 from zillowObject import zillowObject    
 
@@ -58,10 +65,9 @@ def find_nearby_schools(key, state, city, school_attributes, limit=1):
         
         for child in root.findall('school'):
             school = zillowObject.School(school_attributes)
-            print('school object created')
             
             if child.find('gsRating') is None:
-                #private schools need manual entry due to null fields
+                #missing data schools need manual entry due to null fields
                 school['type'] = child.find('type').text
                 school['gsId'] = child.find('gsId').text
                 school['gsRating'] = ''
@@ -69,14 +75,13 @@ def find_nearby_schools(key, state, city, school_attributes, limit=1):
                 school['lon'] = child.find('lon').text
                 school['name'] = child.find('name').text
                 
-            elif(child.find('type').text != 'private'):  
+            else:  
                 for attribute in school:
                     school['%s'%attribute] = child.find('%s'%attribute).text
-            print('school with %s mapping' %school['gsId'])
-            school['longitude_latitude'] = 'SRID=4326;POINT(%s %s)' % (school['lon'], school['lat'])
-            print('updating longitude-latitude to conform to SRID')
-            del school['lat']
-            del school['lon']
+            
+            # school['longitude_latitude'] = 'SRID=4326;POINT(%s %s)' % (school['lon'], school['lat'])
+            # del school['lat']
+            # del school['lon']
                 
             
             school_profiles.append(school)
@@ -177,78 +182,10 @@ def school_reviews(key, state, city, topicID, gsID, school='school',limit=1):
         print('Connection error...')
 
 
-#list of topics available for topical reviews        
-def review_topics(key):
-    try:
-        url = 'https://api.greatschools.org/reviews/reviewTopics'
-        
-        params = {
-            'key': key
-            }
-        response = requests.get(url, params=params)
-        root = ET.fromstring(response.content)
-        print('listing all portential review topics...')
-        
-        
-        for child in root.iter('name'):
-            print(child.text)
-    except (Exception, requests.ConnectionError):
-        print('Connection error...')
-        
 
 
-#returns census data for a specific school        
-def school_census_data(key, state, gsID):
-    try:
-        url = 'https://api.greatschools.org/school/census/%s/%s'%(state, gsID)
-        
-        params = {
-            'key': key
-            }
-        response = requests.get(url, params=params)
-        root = ET.fromstring(response.content)
-        print('finding census data on school with gsID:', gsID)
-        
-        for child in root.iter('name'):
-            print(child.text)
-    except (Exception, requests.ConnectionError):
-        print('Connection error...')
 
 
-#returns info in a city        
-def city_overview(key, state, city):
-    try:
-        url = 'https://api.greatschools.org/cities/%s/%s'%(state, city)
-        params = {
-            'key': key
-            }
-        response = requests.get(url, params=params)
-        root = ET.fromstring(response.content)
-        print('finding overview of', city)
-        
-        for child in root.iter('name'):
-            print(child.text)
-    except (Exception, requests.ConnectionError):
-        print('Connection error...')
-
-
-#returns list of cities near specified city
-def nearby_cities(key, state, city, radius=15):
-    try:
-        url = 'https://api.greatschools.org/cities/nearby/%s/%s'%(state, city) 
-        params = {
-            'key':key,
-            'radius':radius #default 15, range 1-100
-            }
-        
-        response = requests.get(url, params=params)
-        root = ET.fromstring(response.content)
-        print('searching for cities within', radius, 'miles of', city)
-        
-        for child in root.iter('name'):
-            print(child.text)
-    except (Exception, requests.ConnectionError):
-        print('Connection error...')
 
 
 #list of school districts        
@@ -299,25 +236,50 @@ school_attributes = {
     }
 
 
-# schools =[]
-#LA county is about 5500 schools
-list_of_schools = find_nearby_schools(key, state, city,school_attributes, 100)
-
-
-for school in list_of_schools:
-    if school['gsRating'] is '':
-        print(school['name'])
+schools = find_nearby_schools(key, state, city,school_attributes, 5508)
 
 
 
+
+census = []
+for school in schools:
+    traits = []
+    traits.append(school['gsId'])
+    traits.append(school['gsRating'])
+    traits.append(school['type'])
+    traits.append(school['name'])
+    school['longitude_latitude'] = 'SRID=4326;POINT(%s %s)'%(school['lon'], school['lat'])
+    traits.append(school['longitude_latitude'])
+    census.append(traits)
+    
+schools_df = pd.DataFrame.from_records(census, columns=['gsId','gsRating','type','name','longitude_latitude'])
+print(schools_df.head())
+
+engine = create_engine('postgresql+psycopg2://postgres:icuv371fhakletme@localhost:5432/zillow_objects')
+
+schools_df.head(0).to_sql('la_county_education', engine, if_exists='append', index=False)
+
+conn = engine.raw_connection()
+cur = conn.cursor()
+output = io.StringIO()
+schools_df.to_csv(output,sep='\t', header=False, index=False)
+output.seek(0)
+cur.copy_from(output, 'la_county_education', null="")
+conn.commit()
     
 
-# print(len(schools))
-#total schools found in 50 mile radius of LA county center is ~5508
-# school_search(key, state, query)
-        
-        
-        
+# geo = []
+# for school in schools:
+#     point = []
+#     point.append(school['lon'])
+#     point.append(school['lat'])
+#     geo.append(point)
+
+# df = pd.DataFrame.from_records(geo, columns=['longitude', 'latitude'])
+# print(df.head())
+
+# #defining limits of mapping area
+
         
         
         

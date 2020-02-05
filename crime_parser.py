@@ -42,11 +42,33 @@ limit
 """
 
 
+
+""" 
+integer
+date
+date
+time without time zone
+text
+integer
+text
+text
+integer
+text
+integer
+text
+text
+text
+text
+geography
+
+"""
 results = client.get(lacityData, query=query)
 results_df = pd.DataFrame.from_records(results)
 
-pd.set_option('max_colwidth', 100)
-pd.set_option('display.max_columns', 19)
+
+# pd.set_option('max_colwidth', 100)
+# pd.set_option('display.max_columns', 19)
+
 
 
 
@@ -59,27 +81,34 @@ for row in results_df.index:
         results_df.at[row,'vict_age'] = ""
 
 
+
 #formatting long/lat to comply with srid
 results_df['longitude_latitude'] = 'SRID=4326;POINT(' + results_df['lon'].map(str) + ' ' + results_df['lat'].map(str) + ')'
 del results_df['lon']
 del results_df['lat']
 
-print(results_df.head())
+# print(results_df.head())
+
+""" 
+
+had to create table with column types already set and then set
+if_exists='append' in order for the POSTGIS geography type to work.
+
+"""
+
+engine = create_engine('postgresql+psycopg2://postgres:icuv371fhakletme@localhost:5432/zillow_objects')
 
 
 
-#fastest way to upload data to postgresql database
-# engine = create_engine('postgresql+psycopg2://postgres:icuv371fhakletme@localhost:5432/zillow_objects')
+results_df.head(0).to_sql('la_crime', engine, if_exists='append', index=False)
 
-# results_df.head(0).to_sql('la_crime', engine, if_exists='append', index=False)
-
-# conn = engine.raw_connection()
-# cur = conn.cursor()
-# output = io.StringIO()
-# results_df.to_csv(output,sep='\t', header=False, index=False)
-# output.seek(0)
-# cur.copy_from(output, 'la_crime', null="")
-# conn.commit()
+conn = engine.raw_connection()
+cur = conn.cursor()
+output = io.StringIO()
+results_df.to_csv(output,sep='\t', header=False, index=False)
+output.seek(0)
+cur.copy_from(output, 'la_crime', null="")
+conn.commit()
     
     
 
