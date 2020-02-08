@@ -1,7 +1,19 @@
 import requests
 import xml.etree.ElementTree as ET
 
-key = 'X1-ZWz1hgrt0pjaiz_1brbp'
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+""" 
+KEYS:
+    ZILLOW_API_KEY
+    GREATSCHOOLS_API_KEY
+    SOCRATA_CRIME_DATA_KEY
+
+
+"""
+key = os.getenv('ZILLOW_API_KEY')
 state = 'CA'
 county = 'county'
 url = 'https://www.zillow.com/webservice/GetRegionChildren.htm'

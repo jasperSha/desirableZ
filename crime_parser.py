@@ -6,10 +6,21 @@ import psycopg2
 import io
 
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+""" 
+KEYS:
+    ZILLOW_API_KEY
+    GREATSCHOOLS_API_KEY
+    SOCRATA_CRIME_DATA_KEY
 
 
-#only appToken needed to prevent throttle limits
-appToken = 'WutGZxIN3jEBDOZEqrzL5v82Q'
+"""
+appToken = os.getenv('SOCRATA_CRIME_DATA_KEY')
+
+#la repo
 lacityData = '63jg-8b9z'
 
 #currently heavily restricted on these datasets

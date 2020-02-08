@@ -2,24 +2,15 @@ import psycopg2
 import io
 from psycopg2 import sql
 from sqlalchemy import create_engine
+from config import config
 #pipeline set up for funneling addresses into postgres database
 
 def record_zillowProperty(zillowProperty):
     try:
-        host = 'localhost'
-        database = 'zillow_objects'
-        user = 'postgres'
-        password = 'icuv371fhakletme'
         
-        
-        connection = psycopg2.connect(
-        host=host,
-        database=database,
-        user=user,
-        password=password
-        )
-        
-        cursor = connection.cursor()
+        params = config()
+        conn = psycopg2.connect(**params)
+        cursor = conn.cursor()
        
         #converting scientific notation
         float(zillowProperty['taxAssessment'])
@@ -42,38 +33,30 @@ def record_zillowProperty(zillowProperty):
         print('Inserting zillow Property...')
         cursor.execute(q2, zillowProperty)
         
-        connection.commit()
+        conn.commit()
         print('Property committed')
         
-    
+        cursor.close()
+        conn.close()
     
     
     except (Exception, psycopg2.Error) as error :
         print ("Error while connecting to PostgreSQL", error)
     finally:
     #closing database connection.
-        if(connection):
+        if(conn):
             cursor.close()
-            connection.close()
+            conn.close()
             print("PostgreSQL connection is closed")
             
             
 def record_LA_addresses(parsed_address_list):
     try:
-        host = 'localhost'
-        database = 'zillow_objects'
-        user = 'postgres'
-        password = 'icuv371fhakletme'
+       
+        params = config()
+        conn = psycopg2.connect(**params)
+        cursor = conn.cursor()
         
-        
-        connection = psycopg2.connect(
-        host=host,
-        database=database,
-        user=user,
-        password=password
-        )
-        
-        cursor = connection.cursor()
        
         address_count = 0
         #list of 
@@ -89,16 +72,33 @@ def record_LA_addresses(parsed_address_list):
             ))
         
             cursor.execute(q2, parsed_address)
-            connection.commit()  
+            conn.commit()  
             
     except (Exception, psycopg2.Error) as error :
         print ("Error while connecting to PostgreSQL", error)
     finally:
     #closing database connection.
-        if(connection):
+        if(conn):
             cursor.close()
-            connection.close()
+            conn.close()
             print("PostgreSQL connection is closed")
             
+            
+
+# def pull_crime_data():
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
             
 

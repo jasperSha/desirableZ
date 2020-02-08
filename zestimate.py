@@ -4,7 +4,6 @@ import xml.etree.ElementTree as ET
 #(requires zpid to access)
 def get_zestimate(key, zpid, url, zillowObject, zestPropAttr):
     
-    retrievalCategories = vars(zillowObject)
     parameters = {
         'zws-id':key,
         'zpid':zpid,
@@ -17,9 +16,11 @@ def get_zestimate(key, zpid, url, zillowObject, zestPropAttr):
     print("Grabbing zestimate attributes now...")
     for category in zestPropAttr:
         for child in root.iter('%s'%category):
-            retrievalCategories['%s'%category] = child.text
+            zillowObject['%s'%category] = child.text
+    
+    #clean up zindexValue because zillow puts commas in this number but not others for some reason
+    zillowObject['zindexValue'] = zillowObject['zindexValue'].replace(',','')
 
-    zillowObject.update(**retrievalCategories)
     print('Property Values updated by Zestimate.')
     
     return zillowObject

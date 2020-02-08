@@ -1,9 +1,27 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+""" 
+KEYS:
+    ZILLOW_API_KEY
+    GREATSCHOOLS_API_KEY
+    SOCRATA_CRIME_DATA_KEY
+
+
+"""
+key = os.getenv('ZILLOW_API_KEY')
+
+
+
 from zillowObject import zillowObject
 from zestimate import get_zestimate
 from deepsearchresults import deep_search
 from postgrestaccess import record_zillowProperty
 
-key = 'X1-ZWz1hgrt0pjaiz_1brbp' #zillow API key
+
+
+# key = 'X1-ZWz1hgrt0pjaiz_1brbp' #zillow API key
 
 zestimate_url = 'https://www.zillow.com/webservice/GetZestimate.htm'
 deepsearch_url = 'https://zillow.com/webservice/GetDeepSearchResults.htm'
@@ -88,6 +106,22 @@ deepPropAttr = (
         )
 
 
+# def run_address():
+#     try:
+#         zillowProperty = zillowObject.PropertyZest(propertyDefaults) #init zillowProperty as a zillowObject(init with given dict)
+
+#     #deepsearch done first
+#         deep_search(key, deepsearch_url, deep_citystatezip, deep_address, zillowProperty, deepPropAttr) 
+    
+    
+    
+#         if zillowProperty['zpid']!='': #making sure property is listed/not null, else continue
+#             zpid = zillowProperty['zpid']
+#             get_zestimate(key, zpid, zestimate_url, zillowProperty, zestPropAttr) 
+            
+#             #upload property to postgresql db
+#             record_zillowProperty(zillowProperty)
+
 if __name__=='__main__':
     zillowProperty = zillowObject.PropertyZest(propertyDefaults) #init zillowProperty as a zillowObject(init with given dict)
 
@@ -95,16 +129,14 @@ if __name__=='__main__':
     deep_search(key, deepsearch_url, deep_citystatezip, deep_address, zillowProperty, deepPropAttr) 
     
     
-    x = vars(zillowProperty)
     
-    if x['zpid']!='': #making sure property is listed
-        zpid = x['zpid']
+    if zillowProperty['zpid']!='': #making sure property is listed/not null, else continue
+        zpid = zillowProperty['zpid']
         get_zestimate(key, zpid, zestimate_url, zillowProperty, zestPropAttr) 
         
-        x = vars(zillowProperty)
-        
         #upload property to postgresql db
-        # record_zillowProperty(x)
+        record_zillowProperty(zillowProperty)
+    
     
     #throwing this into a loop later
         
