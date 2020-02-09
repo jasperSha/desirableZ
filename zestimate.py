@@ -21,6 +21,6 @@ def get_zestimate(key, zpid, url, zillowObject, zestPropAttr):
     #clean up zindexValue because zillow puts commas in this number but not others for some reason
     zillowObject['zindexValue'] = zillowObject['zindexValue'].replace(',','')
 
-    print('Property Values updated by Zestimate.')
+    # print('Property Values updated by Zestimate.')
     
     return zillowObject

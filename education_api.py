@@ -1,3 +1,19 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+""" 
+KEYS:
+    ZILLOW_API_KEY
+    GREATSCHOOLS_API_KEY
+    SOCRATA_CRIME_DATA_KEY
+
+
+"""
+key = os.getenv('GREATSCHOOLS_API_KEY')
+
+
+
 import requests
 import xml.etree.ElementTree as ET
 import numpy as np
@@ -205,7 +221,6 @@ def browse_districts(key, state, city):
         print('Connection error...')
 
 
-key = 'e5fef655bc40261cbfddccbf0888b926'
 city = 'Los-Angeles'
 state = 'CA'
 query = '90063'

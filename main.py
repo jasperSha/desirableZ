@@ -17,17 +17,11 @@ key = os.getenv('ZILLOW_API_KEY')
 from zillowObject import zillowObject
 from zestimate import get_zestimate
 from deepsearchresults import deep_search
-from postgrestaccess import record_zillowProperty
+import postgrestaccess
 
 
 
-# key = 'X1-ZWz1hgrt0pjaiz_1brbp' #zillow API key
 
-zestimate_url = 'https://www.zillow.com/webservice/GetZestimate.htm'
-deepsearch_url = 'https://zillow.com/webservice/GetDeepSearchResults.htm'
-
-deep_citystatezip = 'Palos Verdes Peninsula CA' #for deepsearch, only city/state abbreviation
-deep_address = '1+Dapplegray+Lane'#also for deepsearch
 
 #default property values
 propertyDefaults = {
@@ -106,42 +100,77 @@ deepPropAttr = (
         )
 
 
-# def run_address():
-#     try:
-#         zillowProperty = zillowObject.PropertyZest(propertyDefaults) #init zillowProperty as a zillowObject(init with given dict)
+def run_raw_address(citystatezip, address): #wrap into a function elsewhere?
+    try:
+        zillowProperty = zillowObject.PropertyZest(propertyDefaults) #init zillowProperty as a zillowObject(init with given dict)
 
-#     #deepsearch done first
-#         deep_search(key, deepsearch_url, deep_citystatezip, deep_address, zillowProperty, deepPropAttr) 
+        #deep search api call
+        deep_search(key, deepsearch_url, citystatezip, address, zillowProperty, deepPropAttr) 
     
     
     
-#         if zillowProperty['zpid']!='': #making sure property is listed/not null, else continue
-#             zpid = zillowProperty['zpid']
-#             get_zestimate(key, zpid, zestimate_url, zillowProperty, zestPropAttr) 
+        if zillowProperty['zpid']!='': #making sure property is listed/not null, else continue
+            zpid = zillowProperty['zpid']
+            #zestimate call
+            get_zestimate(key, zpid, zestimate_url, zillowProperty, zestPropAttr) 
             
-#             #upload property to postgresql db
-#             record_zillowProperty(zillowProperty)
+            #upload property to postgresql db
+            print('recording zillow property: %s'%zillowProperty)
+            postgrestaccess.record_zillowProperty(zillowProperty)
+        else:
+            print('this address has no zpid, continuing..')
+            
+            
+    except:
+        print("address failure somewhere")
+        
+
+
+zestimate_url = 'https://www.zillow.com/webservice/GetZestimate.htm'
+deepsearch_url = 'https://zillow.com/webservice/GetDeepSearchResults.htm'
+
+# deep_citystatezip = 'Palos Verdes Peninsula CA' #for deepsearch, only city/state abbreviation
+# deep_address = '1+Dapplegray+Lane'#also for deepsearch
 
 if __name__=='__main__':
-    zillowProperty = zillowObject.PropertyZest(propertyDefaults) #init zillowProperty as a zillowObject(init with given dict)
+    # zillowProperty = zillowObject.PropertyZest(propertyDefaults) #init zillowProperty as a zillowObject(init with given dict)
 
-    #deepsearch done first
-    deep_search(key, deepsearch_url, deep_citystatezip, deep_address, zillowProperty, deepPropAttr) 
+    # #deepsearch done first
+    # deep_search(key, deepsearch_url, deep_citystatezip, deep_address, zillowProperty, deepPropAttr) 
+    
+    # print(zillowProperty)
+    
+    addresses = postgrestaccess.pull_crime_data()
+    
+    count = 0
+    for address in addresses:
+        citystatezip = address[0]
+        deep_address = address[1]
+        count+=1
+        print('running address number %s'%count)
+        run_raw_address(citystatezip, deep_address)
+    
+    """ 
+    5000 ROWS HAVE BEEN QUERIED.
+    NEXT UPDATE FROM 5001 ONWARDS.
+    
+    """
     
     
     
-    if zillowProperty['zpid']!='': #making sure property is listed/not null, else continue
-        zpid = zillowProperty['zpid']
-        get_zestimate(key, zpid, zestimate_url, zillowProperty, zestPropAttr) 
-        
-        #upload property to postgresql db
-        record_zillowProperty(zillowProperty)
     
     
-    #throwing this into a loop later
-        
-
-#data buckets
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
         
         
         

@@ -12,11 +12,19 @@ def deep_search(key, url, citystatezip, address, zillowObject, deepPropAttr):
     
         response = requests.get(url, params=parameters)
         root = ET.fromstring(response.content)
-        print("Grabbing deepsearch values now...")
+        # print("Grabbing deepsearch values now...")
         for category in deepPropAttr:
             for child in root.iter('%s' % category):
                 zillowObject['%s'%category] = child.text
-    
+        
+        #converting empty date values to NULL
+        if zillowObject['last-updated']=='':
+            zillowObject['last-updated'] = None
+        if zillowObject['lastSoldDate']=='':
+            zillowObject['lastSoldDate'] = None
+        
+        
+        
         # zillowObject.update(**retrievalCategories)
         print('Property Values updated by DeepSearch.')
         return zillowObject

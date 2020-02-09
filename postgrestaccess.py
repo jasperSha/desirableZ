@@ -68,8 +68,9 @@ def record_LA_addresses(parsed_address_list):
                       #reading the column names
                       sql.SQL(', ').join(map(sql.Identifier, parsed_address)),
                       #reading the values for corresponding column names
-                      sql.SQL(', ').join(map(sql.Placeholder, parsed_address)
-            ))
+                      sql.SQL(', ').join(map(sql.Placeholder, parsed_address))
+                      
+                      )
         
             cursor.execute(q2, parsed_address)
             conn.commit()  
@@ -85,14 +86,31 @@ def record_LA_addresses(parsed_address_list):
             
             
 
-# def pull_crime_data():
+def pull_crime_data():
+    try:
+       
+        params = config()
+        conn = psycopg2.connect(**params)
+        cursor = conn.cursor()
+    
+        cursor.execute("""SELECT * FROM raw_address
+                          LIMIT 5000;
+        
+                       """)
+        addresses = cursor.fetchall()
+        
+        return addresses
     
     
     
-    
-    
-    
-    
+    except(Exception, psycopg2.Error) as error :
+        print ("Error while connecting to PostgreSQL", error)
+    finally:
+    #closing database connection.
+        if(conn):
+            cursor.close()
+            conn.close()
+            print("PostgreSQL connection is closed")
     
     
     
