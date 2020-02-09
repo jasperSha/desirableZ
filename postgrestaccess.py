@@ -94,7 +94,7 @@ def pull_crime_data():
         cursor = conn.cursor()
     
         cursor.execute("""SELECT * FROM raw_address
-                          LIMIT 5000;
+                          OFFSET 500;
         
                        """)
         addresses = cursor.fetchall()
@@ -115,7 +115,7 @@ def pull_crime_data():
     
     
     
-    
+    #6000
     
     
             

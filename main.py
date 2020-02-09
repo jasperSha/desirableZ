@@ -106,17 +106,23 @@ def run_raw_address(citystatezip, address): #wrap into a function elsewhere?
 
         #deep search api call
         deep_search(key, deepsearch_url, citystatezip, address, zillowProperty, deepPropAttr) 
-    
-    
+        
+        print(zillowProperty)
     
         if zillowProperty['zpid']!='': #making sure property is listed/not null, else continue
             zpid = zillowProperty['zpid']
             #zestimate call
             get_zestimate(key, zpid, zestimate_url, zillowProperty, zestPropAttr) 
             
+            #setting all empty strings to NULL for database
+            for index, value in zillowProperty.items():
+                if value == '':
+                    zillowProperty[index] = None
+            
+            print(zillowProperty)
             #upload property to postgresql db
-            print('recording zillow property: %s'%zillowProperty)
-            postgrestaccess.record_zillowProperty(zillowProperty)
+            # print('recording zillow property: %s'%zillowProperty)
+            # postgrestaccess.record_zillowProperty(zillowProperty)
         else:
             print('this address has no zpid, continuing..')
             
@@ -140,19 +146,22 @@ if __name__=='__main__':
     
     # print(zillowProperty)
     
-    addresses = postgrestaccess.pull_crime_data()
+    # addresses = postgrestaccess.pull_crime_data()
     
-    count = 0
-    for address in addresses:
-        citystatezip = address[0]
-        deep_address = address[1]
-        count+=1
-        print('running address number %s'%count)
-        run_raw_address(citystatezip, deep_address)
+    #testing api endpoint here
+    run_raw_address('Beverly Hills CA', '815 N Whittier Dr')
+    
+    # count = 0
+    # for address in addresses:
+    #     citystatezip = address[0]
+    #     deep_address = address[1]
+    #     count+=1
+    #     print('running address number %s'%count)
+    #     run_raw_address(citystatezip, deep_address)
     
     """ 
     5000 ROWS HAVE BEEN QUERIED.
-    NEXT UPDATE FROM 5001 ONWARDS.
+    NEXT UPDATE FROM 6675 ONWARDS.
     
     """
     
