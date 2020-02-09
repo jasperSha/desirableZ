@@ -113,9 +113,7 @@ def pull_crime_data():
             print("PostgreSQL connection is closed")
     
     
-    
-    
-    #6000
+
     
     
             

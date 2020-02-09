@@ -160,8 +160,8 @@ if __name__=='__main__':
     #     run_raw_address(citystatezip, deep_address)
     
     """ 
-    5000 ROWS HAVE BEEN QUERIED.
-    NEXT UPDATE FROM 6675 ONWARDS.
+    ZILLOW THROTTLED ON 2/8/20.
+    NEXT UPDATE FROM ROW 6675 ONWARDS.
     
     """
     
