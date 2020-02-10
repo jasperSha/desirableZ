@@ -1,7 +1,5 @@
 import psycopg2
-import io
 from psycopg2 import sql
-from sqlalchemy import create_engine
 from config import config
 #pipeline set up for funneling addresses into postgres database
 
@@ -94,7 +92,7 @@ def pull_crime_data():
         cursor = conn.cursor()
     
         cursor.execute("""SELECT * FROM raw_address
-                          OFFSET 16000;
+                          OFFSET 25529;
         
                        """)
         addresses = cursor.fetchall()

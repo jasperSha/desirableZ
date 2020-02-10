@@ -1,36 +1,50 @@
 from config import config
 import psycopg2
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.orm import Session
+from sqlalchemy.ext.automap import automap_base
 
 
-params = config()
-conn = psycopg2.connect(**params)
 
-#creating ORM engine
-engine = create_engine('postgresql://',creator=conn, echo=True)
-Session = sessionmaker(bind=engine)
+def connect():
+    params = config()
+    conn = psycopg2.connect(**params)
+    return conn
+
+#instantiating base for table class mapping
+Base = automap_base()
+
+#starting up ORM engine
+engine = create_engine('postgresql://',creator=connect)
+
+#reflecting the table classes to map the Base
+Base.prepare(engine, reflect=True)
+
+
+session = Session(engine)
 
 #session created for database interface
-session = Session()
+
+for mappedclass in Base.classes:
+    print(mappedclass)
+
+
 
 """ 
 zpid
 AMOUNT (ZESTIMATE)
 long/lat
-zipcode
-city
-state
+
 valueChange (30 day zestimate change)
 lotSizeSqFt
 finishedSqFt
 lastSoldPrice
-fipsCounty
+
 low (valuation range)
 high (valuation range)
 percentile 
 zindexValue
-lastSoldDate
+
 useCode
 bathrooms
 bedrooms
@@ -47,7 +61,7 @@ la crime_desc
 CATEGORIES:
     FELONY:
         SUPPORTED BY INTENT TO KILL OR GRIEVOUSLY INJURE
-        
+        RAPE
         RATING: 5
         
     FELONY ASSAULT:
@@ -210,8 +224,7 @@ date_occ
 
 RATING AFFECTED BY DATE OCCURRED
 
-2010
--
+FOR EACH YEAR, 
 
 
 """

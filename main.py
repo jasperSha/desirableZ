@@ -81,8 +81,8 @@ def run_raw_address(citystatezip, address): #wrap into a function elsewhere?
             
             print(zillowProperty)
             #upload property to postgresql db
-            # print('recording zillow property: %s'%zillowProperty)
-            # postgrestaccess.record_zillowProperty(zillowProperty)
+            print('recording zillow property: %s'%zillowProperty)
+            postgrestaccess.record_zillowProperty(zillowProperty)
         else:
             print('this address has no zpid, continuing..')
             
@@ -96,19 +96,19 @@ if __name__=='__main__':
     addresses = postgrestaccess.pull_crime_data()
     
     #testing api endpoint here
-    run_raw_address('Sun Valley CA', '10011 Roscoe Blvd')
+    # run_raw_address('Sun Valley CA', '10011 Roscoe Blvd')
     
-    # count = 16000
-    # for address in addresses:
-    #     citystatezip = address[0]
-    #     deep_address = address[1]
-    #     count+=1
-    #     print('running address number %s'%count)
-    #     run_raw_address(citystatezip, deep_address)
+    count = 16700
+    for address in addresses:
+        citystatezip = address[0]
+        deep_address = address[1]
+        count+=1
+        print('running address number %s'%count)
+        run_raw_address(citystatezip, deep_address)
     
     """ 
     ZILLOW THROTTLED ON 2/8/20.
-    NEXT UPDATE FROM ROW 16000 ONWARDS.
+    NEXT UPDATE FROM ROW 25529 ONWARDS.
     
     """
     
