@@ -1,9 +1,39 @@
 import requests
 import xml.etree.ElementTree as ET
 #takes zillowObject, updates its dict with deep_search specific attributes
-def deep_search(key, url, citystatezip, address, zillowObject, deepPropAttr):
+def deep_search(key, citystatezip, address, zillowObject):
     try:
-        # retrievalCategories = vars(zillowObject)
+        #property attributes unique to deepsearch call
+        deepPropAttr = (
+            'zpid',
+            
+            'last-updated',
+            
+            'street',
+            'zipcode',
+            'city',
+            'state',
+            'latitude',
+            'longitude',
+            
+            'FIPScounty',
+            'useCode',
+            'taxAssessmentYear',
+            'taxAssessment',
+            
+            'yearBuilt',
+            'lotSizeSqFt',
+            'finishedSqFt',
+            'bathrooms',
+            'bedrooms',
+            
+            
+            'lastSoldDate',
+            'lastSoldPrice'
+        )
+
+        
+        url = 'https://zillow.com/webservice/GetDeepSearchResults.htm'
         parameters = {
             "zws-id": key,
             'citystatezip':citystatezip, #format: city+state_abbreviation

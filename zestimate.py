@@ -2,8 +2,19 @@ import requests
 import xml.etree.ElementTree as ET
 #take zillowObject, update with zestimate specific attributes 
 #(requires zpid to access)
-def get_zestimate(key, zpid, url, zillowObject, zestPropAttr):
+def get_zestimate(key, zpid, zillowObject):
     
+    #property attributes unique to zestimate call
+    zestPropAttr = (
+            'amount',
+            'valueChange',
+            'low',
+            'high',
+            'percentile',
+            'zindexValue'
+            )
+    
+    url = 'https://www.zillow.com/webservice/GetZestimate.htm'
     parameters = {
         'zws-id':key,
         'zpid':zpid,
