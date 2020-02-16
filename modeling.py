@@ -7,7 +7,7 @@ from geoalchemy2 import Geography
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import pandas as pd
-import feather
+# import feather
 
 #defining county_school object for ORM queries
 #matches name to column but can skip table columns
@@ -42,24 +42,7 @@ import feather
 #     def __repr__(self):
 #         return "<Zillow_Property(zpid='%s', Monthly Rental='%s')>"%(self.zpid, self.amount)
     
-# class Crime_Spots(Base):
-#     __tablename__ = 'la_crime'
-    
-#     dr_no = Column(Integer, primary_key=True)
-#     date_rptd = Column(String)
-#     date_occ = Column(String)
-#     time_occ = Column(String)
-#     area_name = Column(String)
-#     rpt_dist_no = Column(Integer)
-#     crm_cd_desc = Column(String) #for rating severity of the crime
-#     vict_descent = Column(String)
-#     vict_age = Column(Integer)
-#     vict_sex = Column(String)
-#     premis_cd = Column(Integer)
-#     weapon_desc = Column(String) #returns the status(abbreviated format)
-#     status = Column(String) #returns the status description
-#     status_desc = Column(String) #returns the weapon description
-#     longitude_latitude = Column(Geography(geometry_type='POINT', srid=4326))
+
 
 
 
@@ -72,7 +55,7 @@ def connect():
 
 
 
-def crime_query():
+def school_query():
     # #starting up ORM engine   
     engine = create_engine('postgresql://',creator=connect)
     
@@ -98,21 +81,47 @@ def crime_query():
         
     count = 0
     geos = []
+    fields = ['gsId', 'gsRating', 'longitude_latitude']
     
-    df = pd.read_sql(session.query(County_School).order_by(County_School.gsId))
-    print(df)
-    for instance in session.query(County_School).order_by(County_School.gsId):
-        if count == 10:
-            break
-        count += 1
-        shply_geom = to_shape(instance.longitude_latitude)
-        geos.append(shply_geom.to_wkt())
-        print(instance)
-    print(geos)
+    records = session.query(County_School).limit(10).all()
+    
+    df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
+    df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
+    
+    print(df.head())
+
+def crime_query():
+    # #starting up ORM engine   
+    engine = create_engine('postgresql://',creator=connect)
+    
+    #binding Session class to engine
+    Session = sessionmaker(bind=engine)
+    
+    #instantiating Session as object
+    session = Session()
+    Base = declarative_base()
+    
+    class Crime_Spots(Base):
+    __tablename__ = 'la_crime'
+    
+    dr_no = Column(Integer, primary_key=True)
+    date_rptd = Column(String)
+    date_occ = Column(String)
+    time_occ = Column(String)
+    area_name = Column(String)
+    rpt_dist_no = Column(Integer)
+    crm_cd_desc = Column(String) #for rating severity of the crime
+    vict_descent = Column(String)
+    vict_age = Column(Integer)
+    vict_sex = Column(String)
+    premis_cd = Column(Integer)
+    weapon_desc = Column(String) #returns the status(abbreviated format)
+    status = Column(String) #returns the status description
+    status_desc = Column(String) #returns the weapon description
+    longitude_latitude = Column(Geography(geometry_type='POINT', srid=4326))
     
     
-crime_query()
-#radius 
+school_query()
 
 
 """ 
