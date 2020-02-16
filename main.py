@@ -98,8 +98,10 @@ if __name__=='__main__':
     #testing api endpoint here
     # run_raw_address('Sun Valley CA', '10011 Roscoe Blvd')
     
-    count = 16700
+    count = 54000
     for address in addresses:
+        if count==64000:
+            break
         citystatezip = address[0]
         deep_address = address[1]
         count+=1
@@ -108,7 +110,7 @@ if __name__=='__main__':
     
     """ 
     ZILLOW THROTTLED ON 2/8/20.
-    NEXT UPDATE FROM ROW 25529 ONWARDS.
+    NEXT UPDATE FROM ROW 54000 ONWARDS.
     
     """
     
