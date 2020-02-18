@@ -1,50 +1,20 @@
 from config import config
 import psycopg2
-from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy import Column, Integer, String, Float, DATE
 from sqlalchemy import create_engine, MetaData, Table, Column
 from geoalchemy2.shape import to_shape
 from geoalchemy2 import Geography
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import pandas as pd
-# import feather
+
+
+#see all panda columns
+pd.options.display.max_columns = None
+pd.options.display.max_rows = None
 
 #defining county_school object for ORM queries
 #matches name to column but can skip table columns
-
-    
-# class Zillow_Property(Base):
-#     __tablename__ = 'zillow_property'
-    
-#     zpid = Column(Integer, primary_key=True)
-#     longitude_latitude = Column(Geography(geometry_type='POINT', srid=4326))
-#     zipcode = Column(Integer)
-#     city = Column(String)
-#     state = Column(String)
-#     valueChange = Column(Integer)
-#     yearBuilt = Column(Integer)
-#     lotSizeSqFt = Column(Integer)
-#     finishedSqFt = Column(Integer)
-#     lastSoldPrice = Column(Integer)
-#     amount = Column(Integer)
-#     taxAssessmentYear = Column(Integer)
-#     FIPScounty = Column(Integer)
-#     low = Column(Integer)
-#     high = Column(Integer)
-#     percentile = Column(Integer)
-#     zindexValue = Column(Integer)
-#     street = Column(String)
-#     lastSoldDate = Column(String)
-#     useCode = Column(String)
-#     bathrooms = Column(Float)
-#     bedrooms = Column(Integer)
-#     taxAssessment = Column(Float)
-#     def __repr__(self):
-#         return "<Zillow_Property(zpid='%s', Monthly Rental='%s')>"%(self.zpid, self.amount)
-    
-
-
-
 
 def connect():
     params = config()
@@ -79,13 +49,14 @@ def school_query():
             return "<County_School(gsId='%s', gsRating='%s')>"%(self.gsId, self.gsRating)
         
         
-    count = 0
-    geos = []
+    
     fields = ['gsId', 'gsRating', 'longitude_latitude']
     
     records = session.query(County_School).limit(10).all()
-    
+   
+    #apply county_school columns to dataframe columns
     df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
+    #lon/lat to POINT format
     df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
     
     print(df.head())
@@ -102,49 +73,85 @@ def crime_query():
     Base = declarative_base()
     
     class Crime_Spots(Base):
-    __tablename__ = 'la_crime'
+        __tablename__ = 'la_crime'
+        
+        dr_no = Column(Integer, primary_key=True)
+        date_rptd = Column(DATE)
+        date_occ = Column(DATE)
+        time_occ = Column(String) #military
+        area_name = Column(String)
+        rpt_dist_no = Column(Integer)
+        crm_cd_desc = Column(String) #for rating severity of the crime
+        vict_descent = Column(String)
+        vict_age = Column(Integer)
+        vict_sex = Column(String)
+        premis_cd = Column(Integer)
+        weapon_desc = Column(String) #returns the status(abbreviated format)
+        status = Column(String) #returns the status description
+        status_desc = Column(String) #returns the weapon description
+        longitude_latitude = Column(Geography(geometry_type='POINT', srid=4326))
     
-    dr_no = Column(Integer, primary_key=True)
-    date_rptd = Column(String)
-    date_occ = Column(String)
-    time_occ = Column(String)
-    area_name = Column(String)
-    rpt_dist_no = Column(Integer)
-    crm_cd_desc = Column(String) #for rating severity of the crime
-    vict_descent = Column(String)
-    vict_age = Column(Integer)
-    vict_sex = Column(String)
-    premis_cd = Column(Integer)
-    weapon_desc = Column(String) #returns the status(abbreviated format)
-    status = Column(String) #returns the status description
-    status_desc = Column(String) #returns the weapon description
-    longitude_latitude = Column(Geography(geometry_type='POINT', srid=4326))
     
+    fields = ['date_occ', 'time_occ', 'crm_cd_desc', 'longitude_latitude']    
+    records = session.query(Crime_Spots).filter(Crime_Spots.date_occ >='2014-01-01')
+    df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
+    #lon/lat to POINT format
+    df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
+
+    print(df.head())
     
-school_query()
+
+def zillow_query():
+     # #starting up ORM engine   
+    engine = create_engine('postgresql://',creator=connect)
+    
+    #binding Session class to engine
+    Session = sessionmaker(bind=engine)
+    
+    #instantiating Session as object
+    session = Session()
+    Base = declarative_base()
+    
+    class Zillow_Property(Base):
+        __tablename__ = 'zillow_property'
+        
+        zpid = Column(Integer, primary_key=True)
+        longitude_latitude = Column(Geography(geometry_type='POINT', srid=4326))
+        zipcode = Column(Integer)
+        city = Column(String)
+        state = Column(String)
+        valueChange = Column(Integer)
+        yearBuilt = Column(Integer)
+        lotSizeSqFt = Column(Integer)
+        finishedSqFt = Column(Integer)
+        lastSoldPrice = Column(Integer)
+        amount = Column(Integer)
+        taxAssessmentYear = Column(Integer)
+        FIPScounty = Column(Integer)
+        low = Column(Integer)
+        high = Column(Integer)
+        percentile = Column(Integer)
+        zindexValue = Column(Integer)
+        street = Column(String)
+        lastSoldDate = Column(DATE)
+        useCode = Column(String)
+        bathrooms = Column(Float)
+        bedrooms = Column(Integer)
+        taxAssessment = Column(Float)
+        def __repr__(self):
+            return "<Zillow_Property(zpid='%s', Monthly Rental='%s')>"%(self.zpid, self.amount)
+    
+    fields = ['amount', 'longitude_latitude', 'zindexValue', 'useCode', 'finishedSqFt', 'lotSizeSqFt', 'low', 'high', 'percentile', 'bathrooms', 'bedrooms', 'taxAssessment']
+    records = session.query(Zillow_Property).limit(1000).all()
+    
+    df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
+    #lon/lat to POINT format
+    df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
+
+    print(df.head())
+zillow_query()
 
 
-""" 
-zpid
-AMOUNT (ZESTIMATE)
-long/lat
-
-valueChange (30 day zestimate change)
-lotSizeSqFt
-finishedSqFt
-lastSoldPrice
-
-low (valuation range)
-high (valuation range)
-percentile 
-zindexValue
-
-useCode
-bathrooms
-bedrooms
-
-
-"""
 
 
 

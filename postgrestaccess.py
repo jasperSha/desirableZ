@@ -92,7 +92,7 @@ def pull_crime_data():
         cursor = conn.cursor()
     
         cursor.execute("""SELECT * FROM raw_address
-                          OFFSET 54000;
+                          OFFSET 65000;
         
                        """)
         addresses = cursor.fetchall()
