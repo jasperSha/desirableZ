@@ -13,7 +13,6 @@ KEYS:
 key = os.getenv('ZILLOW_API_KEY')
 
 
-
 from zillowObject import zillowObject
 from zestimate import get_zestimate
 from deepsearchresults import deep_search
@@ -98,9 +97,9 @@ if __name__=='__main__':
     #testing api endpoint here
     # run_raw_address('Sun Valley CA', '10011 Roscoe Blvd')
     
-    count = 65000
+    count = 66300
     for address in addresses:
-        if count==75000:
+        if count==76300:
             break
         citystatezip = address[0]
         deep_address = address[1]

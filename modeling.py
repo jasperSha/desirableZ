@@ -9,6 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 import pandas as pd
 
 
+
 #see all panda columns
 pd.options.display.max_columns = None
 pd.options.display.max_rows = None
@@ -93,12 +94,12 @@ def crime_query():
     
     
     fields = ['date_occ', 'time_occ', 'crm_cd_desc', 'longitude_latitude']    
-    records = session.query(Crime_Spots).filter(Crime_Spots.date_occ >='2014-01-01')
+    records = session.query(Crime_Spots).filter(Crime_Spots.date_occ >='2015-01-01')
     df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
     #lon/lat to POINT format
     df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
 
-    print(df.head())
+    print(df.describe())
     
 
 def zillow_query():
@@ -149,7 +150,7 @@ def zillow_query():
     df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
 
     print(df.head())
-zillow_query()
+crime_query()
 
 
 
