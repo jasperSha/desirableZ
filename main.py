@@ -97,9 +97,9 @@ if __name__=='__main__':
     #testing api endpoint here
     # run_raw_address('Sun Valley CA', '10011 Roscoe Blvd')
     
-    count = 66300
+    count = 76000
     for address in addresses:
-        if count==76300:
+        if count==86000:
             break
         citystatezip = address[0]
         deep_address = address[1]

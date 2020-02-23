@@ -7,7 +7,9 @@ from geoalchemy2 import Geography
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import pandas as pd
-
+import pyarrow as pa
+import pyarrow.parquet as pq
+import feather
 
 
 #see all panda columns
@@ -42,7 +44,7 @@ def school_query():
         
         gsId = Column(Integer, primary_key=True)
         gsRating = Column(Integer)
-        # type = Column(String)
+        type = Column(String)
         name = Column(String)
         longitude_latitude = Column(Geography(geometry_type='POINT', srid=4326))
         
@@ -51,16 +53,20 @@ def school_query():
         
         
     
-    fields = ['gsId', 'gsRating', 'longitude_latitude']
+    fields = ['gsId', 'gsRating', 'longitude_latitude', 'type']
     
-    records = session.query(County_School).limit(10).all()
+    records = session.query(County_School).all()
    
     #apply county_school columns to dataframe columns
     df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
     #lon/lat to POINT format
     df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
     
-    print(df.head())
+    
+    path = 'school_data.feather'
+    feather.write_dataframe(df, path)
+    df = feather.read_dataframe(path)
+    print(df.describe())
 
 def crime_query():
     # #starting up ORM engine   
@@ -93,12 +99,14 @@ def crime_query():
         longitude_latitude = Column(Geography(geometry_type='POINT', srid=4326))
     
     
-    fields = ['date_occ', 'time_occ', 'crm_cd_desc', 'longitude_latitude']    
-    records = session.query(Crime_Spots).filter(Crime_Spots.date_occ >='2015-01-01')
+    fields = ['date_occ', 'time_occ', 'crm_cd_desc', 'longitude_latitude'] 
+    records = session.query(Crime_Spots).filter(Crime_Spots.date_occ.between('2011-01-01','2011-12-31'))
     df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
     #lon/lat to POINT format
     df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
-
+    
+    table = pa.Table.from_pandas(df)
+    pq.write_table(table, 'la_crime_2011.parquet')
     print(df.describe())
     
 
