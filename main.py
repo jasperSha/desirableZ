@@ -92,14 +92,14 @@ def run_raw_address(citystatezip, address): #wrap into a function elsewhere?
 
 if __name__=='__main__':
     
-    addresses = postgrestaccess.pull_crime_data()
+    addresses = postgrestaccess.pull_address_data() #pulling raw addresses(not crime)
     
     #testing api endpoint here
     # run_raw_address('Sun Valley CA', '10011 Roscoe Blvd')
     
-    count = 76000
+    count = 85000
     for address in addresses:
-        if count==86000:
+        if count==95000:
             break
         citystatezip = address[0]
         deep_address = address[1]

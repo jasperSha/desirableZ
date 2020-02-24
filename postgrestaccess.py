@@ -84,7 +84,7 @@ def record_LA_addresses(parsed_address_list):
             
             
 
-def pull_crime_data():
+def pull_address_data():
     try:
        
         params = config()
@@ -92,7 +92,7 @@ def pull_crime_data():
         cursor = conn.cursor()
     
         cursor.execute("""SELECT * FROM raw_address
-                          OFFSET 76000;
+                          OFFSET 85000;
         
                        """)
         addresses = cursor.fetchall()
