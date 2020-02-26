@@ -4,12 +4,13 @@ from sqlalchemy import Column, Integer, String, Float, DATE
 from sqlalchemy import create_engine, MetaData, Table, Column
 from geoalchemy2.shape import to_shape
 from geoalchemy2 import Geography
+from geoalchemy2 import functions
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
-import feather
+import geopandas
+from shapely import wkt
+
 
 
 #see all panda columns
@@ -55,18 +56,18 @@ def school_query():
     
     fields = ['gsId', 'gsRating', 'longitude_latitude', 'type']
     
-    records = session.query(County_School).all()
+    records = session.query(County_School).limit(1).all()
    
     #apply county_school columns to dataframe columns
     df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
     #lon/lat to POINT format
     df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
+    df['longitude_latitude'] = df['longitude_latitude'].apply(wkt.loads)
+    gdf_schools = geopandas.GeoDataFrame(df, geometry='longitude_latitude')
     
     
-    path = 'school_data.feather'
-    feather.write_dataframe(df, path)
-    df = feather.read_dataframe(path)
-    print(df.describe())
+    gdf_schools.to_file("school_package.gpkg", layer='schools', driver="GPKG")
+    
 
 def crime_query():
     # #starting up ORM engine   
@@ -99,20 +100,23 @@ def crime_query():
         longitude_latitude = Column(Geography(geometry_type='POINT', srid=4326))
     
     
-    fields = ['date_occ', 'time_occ', 'crm_cd_desc', 'longitude_latitude'] 
-    records = session.query(Crime_Spots).filter(Crime_Spots.date_occ.between('2011-01-01','2011-12-31'))
-    df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
-    #lon/lat to POINT format
-    df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
+    fields = ['date_occ', 'crm_cd_desc', 'longitude_latitude'] 
+    for year in range(2011, 2020):
+        records = session.query(Crime_Spots).filter(Crime_Spots.date_occ.between('%s-01-01'%year,'%s-12-31'%year)).all()
+        df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
+        #lon/lat to POINT format
+        df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
+        df['longitude_latitude'] = df['longitude_latitude'].apply(wkt.loads)
+        df['date_occ'] = df['date_occ'].apply(lambda x: x.strftime('%Y-%m-%d'))
+        gdf_schools = geopandas.GeoDataFrame(df, geometry='longitude_latitude') 
+        
+        gdf_schools.to_file("%s_crime.gpkg"%year, layer='crime', driver="GPKG")
     
-    table = pa.Table.from_pandas(df)
-    pq.write_table(table, 'la_crime_2011.parquet')
-    print(df.describe())
     
 
 def zillow_query():
      # #starting up ORM engine   
-    engine = create_engine('postgresql://',creator=connect)
+    engine = create_engine('postgresql://', creator=connect)
     
     #binding Session class to engine
     Session = sessionmaker(bind=engine)
@@ -156,8 +160,13 @@ def zillow_query():
     df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
     #lon/lat to POINT format
     df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
+    df['longitude_latitude'] = df['longitude_latitude'].apply(wkt.loads)
+    
+    gdf_schools = geopandas.GeoDataFrame(df, geometry='longitude_latitude') 
+        
+    gdf_schools.to_file("property.gpkg", layer='property', driver="GPKG")
 
-    print(df.head())
+
 crime_query()
 
 
