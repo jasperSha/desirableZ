@@ -11,9 +11,9 @@ pd.options.display.max_rows = None
 
 
 zipcodes = [
-    90260,
-    90278,
-    90504,
+    # 90260,
+    # 90278,
+    # 90504,
     # 90505,
     # 90275,
     # 91706,
@@ -39,14 +39,39 @@ zipcodes = [
     
     
     # 91423,
-    # 90405
+    # 90405,
+    
+    # 90502,
+    # 90503,
+    # 90506,
+    # 90507,
+    # 90508,
+    # 90509,
+    # 90510,
+    90745,
+    90746,
+    90747,
+    90749,
+    90810,
+    90895,
+    90717,
+    90239,
+    90240,
+    90241,
+    90242,
+    91754,
+    91755,
+    91756,
+    91770,
+    91771,
+    91772
     
     ]
 
 def parse_gpkg():
     cwd = '/Users/Jasper/Documents/GIS_Database/addresses_by_zipcode/ZipCode_'
     
-    zip_91354 = gp.read_file(cwd+'90505.gpkg')
+    zip_91354 = gp.read_file(cwd+'90745.gpkg')
 
     def parse_frame(row):
         try:
