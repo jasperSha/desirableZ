@@ -54,9 +54,9 @@ def school_query():
         
         
     
-    fields = ['gsId', 'gsRating', 'longitude_latitude', 'type']
+    fields = ['gsId', 'gsRating', 'name', 'longitude_latitude', 'type']
     
-    records = session.query(County_School).limit(1).all()
+    records = session.query(County_School).all()
    
     #apply county_school columns to dataframe columns
     df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
@@ -65,8 +65,9 @@ def school_query():
     df['longitude_latitude'] = df['longitude_latitude'].apply(wkt.loads)
     gdf_schools = geopandas.GeoDataFrame(df, geometry='longitude_latitude')
     
-    
-    gdf_schools.to_file("school_package.gpkg", layer='schools', driver="GPKG")
+    gdf_schools.crs = 'EPSG:4326'
+    return gdf_schools
+    # gdf_schools.to_file("school_package.gpkg", layer='schools', driver="GPKG")
     
 
 def crime_query():
@@ -101,16 +102,17 @@ def crime_query():
     
     
     fields = ['date_occ', 'crm_cd_desc', 'longitude_latitude'] 
-    for year in range(2011, 2020):
+    for year in range(2019, 2020):
         records = session.query(Crime_Spots).filter(Crime_Spots.date_occ.between('%s-01-01'%year,'%s-12-31'%year)).all()
         df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
         #lon/lat to POINT format
         df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
         df['longitude_latitude'] = df['longitude_latitude'].apply(wkt.loads)
         df['date_occ'] = df['date_occ'].apply(lambda x: x.strftime('%Y-%m-%d'))
-        gdf_schools = geopandas.GeoDataFrame(df, geometry='longitude_latitude') 
-        
-        gdf_schools.to_file("%s_crime.gpkg"%year, layer='crime', driver="GPKG")
+        gdf_crime = geopandas.GeoDataFrame(df, geometry='longitude_latitude') 
+        gdf_crime.crs = 'EPSG:4326'
+        return gdf_crime
+        # gdf_schools.to_file("%s_crime.gpkg"%year, layer='crime', driver="GPKG")
     
     
 
@@ -162,14 +164,13 @@ def zillow_query():
     df['longitude_latitude'] = df['longitude_latitude'].apply(lambda x: to_shape(x).to_wkt())
     df['longitude_latitude'] = df['longitude_latitude'].apply(wkt.loads)
     
-    gdf_schools = geopandas.GeoDataFrame(df, geometry='longitude_latitude') 
-        
-    gdf_schools.to_file("property.gpkg", layer='property', driver="GPKG")
+    gdf_properties = geopandas.GeoDataFrame(df, geometry='longitude_latitude') 
+    gdf_properties.crs = 'EPSG:4326'
+    return gdf_properties
+    # gdf_properties.to_file("property.gpkg", layer='property', driver="GPKG")
 
 
-crime_query()
-
-
+crime = crime_query()
 
 
 
