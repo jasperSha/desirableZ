@@ -11,6 +11,7 @@ import pandas as pd
 import geopandas
 from shapely import wkt
 import numpy as np
+import os
 
 
 
@@ -157,7 +158,7 @@ def zillow_query():
         def __repr__(self):
             return "<Zillow_Property(zpid='%s', Monthly Rental='%s')>"%(self.zpid, self.amount)
     
-    fields = ['amount', 'longitude_latitude', 'zindexValue', 'useCode', 'finishedSqFt', 'lotSizeSqFt', 'low', 'high', 'percentile', 'bathrooms', 'bedrooms', 'taxAssessment']
+    fields = ['amount', 'longitude_latitude', 'zipcode', 'zindexValue', 'useCode', 'finishedSqFt', 'lotSizeSqFt', 'low', 'high', 'percentile', 'bathrooms', 'bedrooms', 'taxAssessment']
     records = session.query(Zillow_Property).all()
     
     df = pd.DataFrame([{fn: getattr(f, fn) for fn in fields} for f in records])
@@ -169,11 +170,12 @@ def zillow_query():
     df['bathrooms'] = df['bathrooms'].apply(lambda x: np.float64(x))
     df['bedrooms'] = df['bedrooms'].apply(lambda x: np.float64(x))
     df['taxAssessment'] = df['taxAssessment'].apply(lambda x: np.float64(x))
+    
     #setting geom column and CRS for GDF
     gdf_properties = geopandas.GeoDataFrame(df, geometry='longitude_latitude') 
     gdf_properties.crs = 'EPSG:4326'
 
-    
+    os.chdir('/Users/Jasper/Documents/HousingMap/R_data/rental/')
     gdf_properties.to_file("property.gpkg", layer='property', driver="GPKG")
 
 

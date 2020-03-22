@@ -92,7 +92,7 @@ def pull_address_data():
         cursor = conn.cursor()
     
         cursor.execute("""SELECT * FROM raw_address
-                          OFFSET 85000;
+                          OFFSET 254309;
         
                        """)
         addresses = cursor.fetchall()

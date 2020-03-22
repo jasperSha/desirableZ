@@ -103,9 +103,9 @@ if __name__=='__main__':
     #     number, state = item
     #     run_raw_address(state, number)
     
-    count = 85000
+    count = 254309
     for address in addresses:
-        if count==95000:
+        if count==(263309):
             break
         citystatezip = address[0]
         deep_address = address[1]
@@ -113,11 +113,6 @@ if __name__=='__main__':
         print('running address number %s'%count)
         run_raw_address(citystatezip, deep_address)
     
-    """ 
-    ZILLOW THROTTLED ON 2/8/20.
-    NEXT UPDATE FROM ROW 64000 ONWARDS.
-    
-    """
     
     
     

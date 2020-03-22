@@ -1,39 +1,28 @@
 import os
 from dotenv import load_dotenv
 import requests
-import xml.etree.ElementTree as ET
+import json
+import pandas as pd
 load_dotenv()
 google_key = os.getenv('GOOGLE_CLOUD_API_KEY')
 
-url = 'https://maps.googleapis.com/maps/api/geocode/xml'
-
-""" 4 decimal places in long/latitude for about 11m precision (parcel of land)
-    5 decimal places for about 1.1m precision (individual trees)
-"""
-
-#geocode in latitude/longitude format
-lat = '34.0953'
-lon = '-118.2717'
+url = 'https://maps.googleapis.com/maps/api/geocode/json'
 
 
-western_lat = '34.05518'
-
-
-params = {
-    'key' : google_key,
-    'latlng':'%s %s'%(lat, lon),
-    'result_type':'street_address'
-    # 'location_type':'RANGE_INTERPOLATED'
-    }
-
-response = requests.get(url,params=params)
-root = ET.fromstring(response.content)
-
-for child in root.iter():
-    print(child.text)
-for child in root.iter('status'):
-    print(child.text)
-for child in root.iter('formatted_address'):
-    print(child.text, 'found at (%s, %s)'%(lat, lon))
+def geocode_crime(address):
+    params = {
+        'key': google_key,
+        'address': address
+        }
+    response = requests.get(url, params=params)
+    json_data = response.json()
+    if json_data['status'] == 'ZERO_RESULTS':
+        return ''
+    else:
+        long_lat = json_data['results'][0]['geometry']['location']
+        return '(' + str(long_lat['lng']) + ', ' + str(long_lat['lat']) + ')'
     
-    
+
+
+
+
