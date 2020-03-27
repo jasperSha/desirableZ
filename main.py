@@ -103,9 +103,9 @@ if __name__=='__main__':
     #     number, state = item
     #     run_raw_address(state, number)
     
-    count = 254309
+    count = 290309
     for address in addresses:
-        if count==(263309):
+        if count==(299309):
             break
         citystatezip = address[0]
         deep_address = address[1]

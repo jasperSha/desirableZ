@@ -18,10 +18,11 @@ import requests
 import xml.etree.ElementTree as ET
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from sqlalchemy import create_engine
 import psycopg2
 import io
+import geopandas as gpd
+from shapely import wkt
 
 
 from zillowObject import zillowObject    
@@ -77,8 +78,10 @@ def find_nearby_schools(key, state, city, school_attributes, limit=1):
         response = requests.get(url, params=params)
         root = ET.fromstring(response.content)
         print('finding schools by gsID near..', city)
-
         
+        for child in root.iter():
+            print(child.tag, child.text)
+            
         for child in root.findall('school'):
             school = zillowObject.School(school_attributes)
             
@@ -86,6 +89,7 @@ def find_nearby_schools(key, state, city, school_attributes, limit=1):
                 #missing data schools need manual entry due to null fields
                 school['type'] = child.find('type').text
                 school['gsId'] = child.find('gsId').text
+                # school['district'] = child.find('district').text
                 school['gsRating'] = ''
                 school['lat'] = child.find('lat').text
                 school['lon'] = child.find('lon').text
@@ -95,9 +99,9 @@ def find_nearby_schools(key, state, city, school_attributes, limit=1):
                 for attribute in school:
                     school['%s'%attribute] = child.find('%s'%attribute).text
             
-            # school['longitude_latitude'] = 'SRID=4326;POINT(%s %s)' % (school['lon'], school['lat'])
-            # del school['lat']
-            # del school['lon']
+            school['longitude_latitude'] = 'SRID=4326;POINT(%s %s)' % (school['lon'], school['lat'])
+            del school['lat']
+            del school['lon']
                 
             
             school_profiles.append(school)
@@ -200,10 +204,6 @@ def school_reviews(key, state, city, topicID, gsID, school='school',limit=1):
 
 
 
-
-
-
-
 #list of school districts        
 def browse_districts(key, state, city):
     try:
@@ -229,7 +229,6 @@ school_attributes = {
         'gsId':'',
         'type':'',
         'name':'',
-        # 'name':'',
         # 'public_private':'',
         # 'gradeRange':'',
         # 'enrollment':'',
@@ -251,36 +250,49 @@ school_attributes = {
     }
 
 
-schools = find_nearby_schools(key, state, city,school_attributes, 5508)
+schools = find_nearby_schools(key, state, city,school_attributes, 5)
+
+print(schools)
 
 
-
-
-census = []
-for school in schools:
-    traits = []
-    traits.append(school['gsId'])
-    traits.append(school['gsRating'])
-    traits.append(school['type'])
-    traits.append(school['name'])
-    school['longitude_latitude'] = 'SRID=4326;POINT(%s %s)'%(school['lon'], school['lat'])
-    traits.append(school['longitude_latitude'])
-    census.append(traits)
+# census = []
+# for school in schools:
+#     traits = []
+#     traits.append(school['gsId'])
+#     traits.append(school['gsRating'])
+#     traits.append(school['type'])
+#     traits.append(school['district'])
+#     traits.append(school['name'])
+#     school['longitude_latitude'] = 'SRID=4326;POINT(%s %s)'%(school['lon'], school['lat'])
+#     traits.append(school['longitude_latitude'])
+#     census.append(traits)
     
-schools_df = pd.DataFrame.from_records(census, columns=['gsId','gsRating','type','name','longitude_latitude'])
-print(schools_df.head())
+# schools_df = pd.DataFrame.from_records(census, columns=['gsId','gsRating','type', 'district','name','longitude_latitude'])
 
-engine = create_engine('postgresql+psycopg2://postgres:icuv371fhakletme@localhost:5432/zillow_objects')
+# schools_df['longitude_latitude'] = schools_df['longitude_latitude'].apply(lambda x: x[10:].strip())
 
-schools_df.head(0).to_sql('la_county_education', engine, if_exists='append', index=False)
 
-conn = engine.raw_connection()
-cur = conn.cursor()
-output = io.StringIO()
-schools_df.to_csv(output,sep='\t', header=False, index=False)
-output.seek(0)
-cur.copy_from(output, 'la_county_education', null="")
-conn.commit()
+# schools_df = schools_df['longitude_latitude'].apply(wkt.loads)
+# schools_gdf = gpd.GeoDataFrame(schools_df, geometry='longitude_latitude')
+# print(schools_gdf.head())
+
+
+# schools_gdf.to_file('schools.gpkg', driver='GPKG')
+
+
+
+
+# engine = create_engine('postgresql+psycopg2://postgres:icuv371fhakletme@localhost:5432/zillow_objects')
+
+# schools_df.head(0).to_sql('la_county_education', engine, if_exists='append', index=False)
+
+# conn = engine.raw_connection()
+# cur = conn.cursor()
+# output = io.StringIO()
+# schools_df.to_csv(output,sep='\t', header=False, index=False)
+# output.seek(0)
+# cur.copy_from(output, 'la_county_education', null="")
+# conn.commit()
     
 
 # geo = []
