@@ -23,6 +23,9 @@ import psycopg2
 import io
 import geopandas as gpd
 from shapely import wkt
+from shapely.geometry import Point
+from geoalchemy2.shape import to_shape
+
 
 
 from zillowObject import zillowObject    
@@ -51,7 +54,7 @@ For call:
         address,
         ncesID,
         lat,
-        lon
+        lon,
         
         overviewLink,
         ratingsLink,
@@ -63,6 +66,10 @@ For call:
 #list of schools closest to center of city, or lat/lon selected
 def find_nearby_schools(key, state, city, school_attributes, limit=1):
     try:
+        """ 
+        only this one returns the gsRating
+        """
+        
         url = 'https://api.greatschools.org/schools/nearby'
         params = {
             'key': key,
@@ -79,11 +86,13 @@ def find_nearby_schools(key, state, city, school_attributes, limit=1):
         root = ET.fromstring(response.content)
         print('finding schools by gsID near..', city)
         
-        for child in root.iter():
-            print(child.tag, child.text)
             
         for child in root.findall('school'):
             school = zillowObject.School(school_attributes)
+            
+            # for attribute in school:
+            #     if child.find('%s'%attribute).text is not None:
+            #         school['%s'%attribute] = child.find('%s'%attribute).text
             
             if child.find('gsRating') is None:
                 #missing data schools need manual entry due to null fields
@@ -102,14 +111,17 @@ def find_nearby_schools(key, state, city, school_attributes, limit=1):
             school['longitude_latitude'] = 'SRID=4326;POINT(%s %s)' % (school['lon'], school['lat'])
             del school['lat']
             del school['lon']
-                
             
             school_profiles.append(school)
     
         return school_profiles
             
-    except(Exception, requests.ConnectionError):
-        print('Connection error..')
+    except requests.exceptions.ConnectionError as ece:
+        print("Connection Error:", ece)
+    except requests.exceptions.Timeout as et:
+        print("Timeout Error:", et)
+    except requests.exceptions.RequestException as e:
+        print("Some Ambiguous Exception:", e)
         
         
 #list of all schools in a city
@@ -127,13 +139,16 @@ def browse_schools(key, state, city):
         
         for child in root.iter('name'):
             print(child.text)
-    except (Exception, requests.ConnectionError):
-        print('Connection error...')
+    except requests.exceptions.ConnectionError as ece:
+        print("Connection Error:", ece)
+    except requests.exceptions.Timeout as et:
+        print("Timeout Error:", et)
+    except requests.exceptions.RequestException as e:
+        print("Some Ambiguous Exception:", e)
 
 #profile data for a specific school
-def school_profile(key, state, school):
+def school_profile(key, state, gsID):
     try:
-        gsID = school['gsId']
         url = 'https://api.greatschools.org/schools/%s/%s'%(state, gsID)
         params = {
             'key': key
@@ -142,15 +157,24 @@ def school_profile(key, state, school):
         response = requests.get(url, params=params)
         root = ET.fromstring(response.content)
         print('looking up school associated with', gsID)
-        
-        
+ 
+        for child in root.iter():
+            print(child.tag, child.text)
         
         # for location in root.iter('lat'):
         #     school['lat'] = location.text
         # for location in root.iter('lon'):
         #     school['lon'] = location.text
-    except (Exception, requests.ConnectionError):
-        print('Connection error...')
+    except requests.exceptions.ConnectionError as ece:
+        print("Connection Error:", ece)
+    except requests.exceptions.Timeout as et:
+        print("Timeout Error:", et)
+    except requests.exceptions.RequestException as e:
+        print("Some Ambiguous Exception:", e)
+        
+        
+
+
         
 #returns list of schools based on query    
 def school_search(key, state, query, levelCode='', limit=2):
@@ -173,8 +197,12 @@ def school_search(key, state, query, levelCode='', limit=2):
             print(child.text)
         for child in root.iter('name'):
             print(child.text)
-    except (Exception, requests.ConnectionError):
-        print('Connection error...')
+    except requests.exceptions.ConnectionError as ece:
+        print("Connection Error:", ece)
+    except requests.exceptions.Timeout as et:
+        print("Timeout Error:", et)
+    except requests.exceptions.RequestException as e:
+        print("Some Ambiguous Exception:", e)
   
 #list of most recent reviews for a school      
 def school_reviews(key, state, city, topicID, gsID, school='school',limit=1):   
@@ -198,8 +226,12 @@ def school_reviews(key, state, city, topicID, gsID, school='school',limit=1):
         
         for child in root.iter('name'):
             print(child.text)
-    except (Exception, requests.ConnectionError):
-        print('Connection error...')
+    except requests.exceptions.ConnectionError as ece:
+        print("Connection Error:", ece)
+    except requests.exceptions.Timeout as et:
+        print("Timeout Error:", et)
+    except requests.exceptions.RequestException as e:
+        print("Some Ambiguous Exception:", e)
 
 
 
@@ -217,8 +249,12 @@ def browse_districts(key, state, city):
         
         for child in root.iter('name'):
             print(child.text)
-    except (Exception, requests.ConnectionError):
-        print('Connection error...')
+    except requests.exceptions.ConnectionError as ece:
+        print("Connection Error:", ece)
+    except requests.exceptions.Timeout as et:
+        print("Timeout Error:", et)
+    except requests.exceptions.RequestException as e:
+        print("Some Ambiguous Exception:", e)
 
 
 city = 'Los-Angeles'
@@ -250,34 +286,45 @@ school_attributes = {
     }
 
 
-schools = find_nearby_schools(key, state, city,school_attributes, 5)
+schools = find_nearby_schools(key, state, city,school_attributes, 5508)
 
-print(schools)
+# print(schools)
 
 
-# census = []
-# for school in schools:
-#     traits = []
-#     traits.append(school['gsId'])
-#     traits.append(school['gsRating'])
-#     traits.append(school['type'])
-#     traits.append(school['district'])
-#     traits.append(school['name'])
-#     school['longitude_latitude'] = 'SRID=4326;POINT(%s %s)'%(school['lon'], school['lat'])
-#     traits.append(school['longitude_latitude'])
-#     census.append(traits)
+census = []
+for school in schools:
+    traits = []
+    traits.append(school['gsId'])
+    traits.append(school['gsRating'])
+    traits.append(school['type'])
+    # traits.append(school['district'])
+    traits.append(school['name'])
+    # school['longitude_latitude'] = 'SRID=4326;POINT(%s %s)'%(school['lon'], school['lat'])
+    traits.append(school['longitude_latitude'])
+    # traits.append(school['lon'])
+    # traits.append(school['lat'])
+    census.append(traits)
     
-# schools_df = pd.DataFrame.from_records(census, columns=['gsId','gsRating','type', 'district','name','longitude_latitude'])
-
-# schools_df['longitude_latitude'] = schools_df['longitude_latitude'].apply(lambda x: x[10:].strip())
+schools_df = pd.DataFrame.from_records(census, columns=['gsId','gsRating','type','name','longitude_latitude'])
 
 
-# schools_df = schools_df['longitude_latitude'].apply(wkt.loads)
-# schools_gdf = gpd.GeoDataFrame(schools_df, geometry='longitude_latitude')
-# print(schools_gdf.head())
+# print(schools_df.loc[schools_df['gsId']=='10946'])
 
 
-# schools_gdf.to_file('schools.gpkg', driver='GPKG')
+
+schools_df['longitude_latitude'] = schools_df['longitude_latitude'].apply(lambda x: x[10:].strip())
+
+
+
+schools_df['longitude_latitude'] = schools_df['longitude_latitude'].apply(wkt.loads)
+
+
+schools_gdf = gpd.GeoDataFrame(schools_df, geometry='longitude_latitude')
+
+print(schools_gdf.head())
+
+
+schools_gdf.to_file('schools.gpkg', driver='GPKG')
 
 
 

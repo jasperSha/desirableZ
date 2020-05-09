@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from configparser import ConfigParser
 
-filename = '/Users/Jasper/Documents/HousingMap/desirableZ/configuration/database.ini'
+filename = '/home/jaspersha/Projects/HeatMap/desirableZ/configuration/database.ini'
 
 def config(filename=filename, section='postgresql'):
     parser = ConfigParser()

@@ -1,2 +1,11 @@
 *.ini
 *.env
+configuration/
+__pycache__/
+*.py[cod]
+
+zillowObject/__pycache__/
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

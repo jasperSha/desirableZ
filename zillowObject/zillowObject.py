@@ -8,6 +8,9 @@ class PropertyZest:
         for key, value in kwargs.items():
             setattr(self, key, value)
             
+    def pop(self, *args):
+        return self.__dict__.pop(*args)
+            
     def items(self):
         return self.__dict__.items()
     

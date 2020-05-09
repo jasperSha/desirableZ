@@ -78,9 +78,9 @@ def run_raw_address(citystatezip, address): #wrap into a function elsewhere?
                 if value == '':
                     zillowProperty[index] = None
             
-            print(zillowProperty)
+            # print(zillowProperty)
             #upload property to postgresql db
-            print('recording zillow property: %s'%zillowProperty)
+            # print('recording zillow property: %s'%zillowProperty)
             postgrestaccess.record_zillowProperty(zillowProperty)
         else:
             print('this address has no zpid, continuing..')
@@ -103,16 +103,15 @@ if __name__=='__main__':
     #     number, state = item
     #     run_raw_address(state, number)
     
-    count = 290309
+    count = 466310
     for address in addresses:
-        if count==(299309):
+        if count==(475310):
             break
         citystatezip = address[0]
         deep_address = address[1]
         count+=1
         print('running address number %s'%count)
         run_raw_address(citystatezip, deep_address)
-    
     
     
     

@@ -9,16 +9,32 @@ def record_zillowProperty(zillowProperty):
         params = config()
         conn = psycopg2.connect(**params)
         cursor = conn.cursor()
-       
+
         #converting scientific notation
         float(zillowProperty['taxAssessment'])
-                
         #combining long/lat into Point datatype
         #SRID = 4326 (for geography datatype)
-        zillowProperty['longitude_latitude'] = 'SRID=4326;POINT(%s %s)' % (zillowProperty['longitude'], zillowProperty['latitude'])
+        zillowProperty['longlat'] = 'SRID=4326;POINT(%s %s)' % (zillowProperty['longitude'], zillowProperty['latitude'])
         del zillowProperty['longitude']
         del zillowProperty['latitude']
         
+        zillowProperty['valuechange'] = zillowProperty.pop('valueChange')
+        zillowProperty['yearbuilt'] = zillowProperty.pop('yearBuilt')
+        print(zillowProperty)
+        zillowProperty['lotsizesqft'] = zillowProperty.pop('lotSizeSqFt')
+        zillowProperty['finishedsqft'] = zillowProperty.pop('finishedSqFt')
+        zillowProperty['lastsoldprice'] = zillowProperty.pop('lastSoldPrice')
+        zillowProperty['taxassessmentyear'] = zillowProperty.pop('taxAssessmentYear')
+        zillowProperty['fipscounty'] = zillowProperty.pop('FIPScounty')
+        zillowProperty['zindexvalue'] = zillowProperty.pop('zindexValue')
+        zillowProperty['lastsolddate'] = zillowProperty.pop('lastSoldDate')
+        zillowProperty['lastupdated'] = zillowProperty.pop('last-updated')
+        zillowProperty['usecode'] = zillowProperty.pop('useCode')
+        zillowProperty['taxassessment'] = zillowProperty.pop('taxAssessment')
+        
+        
+        print(zillowProperty)
+        # zillowProperty['id'] = "nextval('zillow_property_id_seq')"
         #funneling dict into sql statement
         q2 = sql.SQL("INSERT INTO zillow_property ({}) values ({})").format(
                   #reading the column names and matches to dictionary key
@@ -27,6 +43,8 @@ def record_zillowProperty(zillowProperty):
                   sql.SQL(', ').join(map(sql.Placeholder, zillowProperty)
         ))
         
+        # print("SQL statement:\n")
+        print(q2.as_string(conn))
         
         print('Inserting zillow Property...')
         cursor.execute(q2, zillowProperty)
@@ -92,7 +110,7 @@ def pull_address_data():
         cursor = conn.cursor()
     
         cursor.execute("""SELECT * FROM raw_address
-                          OFFSET 290309;
+                          OFFSET 466310;
         
                        """)
         addresses = cursor.fetchall()

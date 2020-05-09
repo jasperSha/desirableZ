@@ -36,7 +36,7 @@ select
     time_occ,
     area_name,
     lat,
-    lon,
+    lon,float
     rpt_dist_no,
     crm_cd_desc,
     vict_descent,
