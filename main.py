@@ -18,6 +18,7 @@ from zestimate import get_zestimate
 from deepsearchresults import deep_search
 import postgrestaccess
 from zipcode_parse import parse_gpkg as gpkg
+import pandas as pd
 
 
 
@@ -64,8 +65,8 @@ propertyDefaults = {
 
 def run_raw_address(citystatezip, address): #wrap into a function elsewhere?
     try:
-        zillowProperty = zillowObject.PropertyZest(propertyDefaults) #init zillowProperty as a zillowObject(init with given dict)
-
+        # zillowProperty = zillowObject.PropertyZest(propertyDefaults) #init zillowProperty as a zillowObject(init with given dict)
+        zillowProperty = propertyDefaults
         #deep search call
         deep_search(key, citystatezip, address, zillowProperty) 
 
@@ -73,15 +74,15 @@ def run_raw_address(citystatezip, address): #wrap into a function elsewhere?
             #zestimate call
             get_zestimate(key, zillowProperty['zpid'], zillowProperty) 
             
-            #setting all empty strings to NULL for database
-            for index, value in zillowProperty.items():
-                if value == '':
-                    zillowProperty[index] = None
+            #clean formatting
+            zillowProperty['zindexValue'] = str(zillowProperty['zindexValue']).replace(',','')
+            zillowProperty['lastupdated'] = zillowProperty['last-updated']
+            del zillowProperty['last-updated']
             
-            # print(zillowProperty)
+            return zillowProperty
             #upload property to postgresql db
             # print('recording zillow property: %s'%zillowProperty)
-            postgrestaccess.record_zillowProperty(zillowProperty)
+            # postgrestaccess.record_zillowProperty(zillowProperty)
         else:
             print('this address has no zpid, continuing..')
             
@@ -91,31 +92,6 @@ def run_raw_address(citystatezip, address): #wrap into a function elsewhere?
         
 
 if __name__=='__main__':
-    
-    addresses = postgrestaccess.pull_address_data() #pulling raw addresses(not crime)
-    
-    #testing api endpoint here
-    # run_raw_address('Valencia CA', '28939 Mirada Circulo')
-    
-    # addr = []
-    # addr = gpkg()
-    # for item in addr:
-    #     number, state = item
-    #     run_raw_address(state, number)
-    
-    count = 466310
-    for address in addresses:
-        if count==(475310):
-            break
-        citystatezip = address[0]
-        deep_address = address[1]
-        count+=1
-        print('running address number %s'%count)
-        run_raw_address(citystatezip, deep_address)
-    
-    
-    
-    
     
     
     

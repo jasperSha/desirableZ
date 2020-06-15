@@ -20,7 +20,7 @@ def geocode_crime(address):
         return ''
     else:
         long_lat = json_data['results'][0]['geometry']['location']
-        return '(' + str(long_lat['lng']) + ', ' + str(long_lat['lat']) + ')'
+        return 'POINT(' + str(long_lat['lng']) + ' ' + str(long_lat['lat']) + ')'
     
 
 

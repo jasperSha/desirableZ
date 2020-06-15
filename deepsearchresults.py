@@ -47,7 +47,7 @@ def deep_search(key, citystatezip, address, zillowObject):
             for child in root.iter('%s' % category):
                 zillowObject['%s'%category] = child.text
         
-        print('Property Values updated by DeepSearch.')
+        # print('Property Values updated by DeepSearch.')
         return zillowObject
     except requests.exceptions.Timeout:
         print('connection timeout.. possible throttling')

@@ -20,7 +20,6 @@ def record_zillowProperty(zillowProperty):
         
         zillowProperty['valuechange'] = zillowProperty.pop('valueChange')
         zillowProperty['yearbuilt'] = zillowProperty.pop('yearBuilt')
-        print(zillowProperty)
         zillowProperty['lotsizesqft'] = zillowProperty.pop('lotSizeSqFt')
         zillowProperty['finishedsqft'] = zillowProperty.pop('finishedSqFt')
         zillowProperty['lastsoldprice'] = zillowProperty.pop('lastSoldPrice')
@@ -33,7 +32,6 @@ def record_zillowProperty(zillowProperty):
         zillowProperty['taxassessment'] = zillowProperty.pop('taxAssessment')
         
         
-        print(zillowProperty)
         # zillowProperty['id'] = "nextval('zillow_property_id_seq')"
         #funneling dict into sql statement
         q2 = sql.SQL("INSERT INTO zillow_property ({}) values ({})").format(
@@ -44,13 +42,13 @@ def record_zillowProperty(zillowProperty):
         ))
         
         # print("SQL statement:\n")
-        print(q2.as_string(conn))
+        # print(q2.as_string(conn))
         
-        print('Inserting zillow Property...')
+        # print('Inserting zillow Property...')
         cursor.execute(q2, zillowProperty)
         
         conn.commit()
-        print('Property committed')
+        # print('Property committed')
         
         cursor.close()
         conn.close()
@@ -58,12 +56,12 @@ def record_zillowProperty(zillowProperty):
     
     except (Exception, psycopg2.Error) as error :
         print ("Error while connecting to PostgreSQL", error)
-    finally:
-    #closing database connection.
-        if(conn):
-            cursor.close()
-            conn.close()
-            print("PostgreSQL connection is closed")
+    # finally:
+    # #closing database connection.
+    #     if(conn):
+    #         cursor.close()
+    #         conn.close()
+    #         print("PostgreSQL connection is closed")
             
             
 def record_LA_addresses(parsed_address_list):
@@ -110,10 +108,19 @@ def pull_address_data():
         cursor = conn.cursor()
     
         cursor.execute("""SELECT * FROM raw_address
-                          OFFSET 466310;
+                          WHERE city_state LIKE '%Los Angeles%' 
+                          OFFSET 529000;
         
                        """)
         addresses = cursor.fetchall()
+        
+        """
+            last count is about 520000. select * from raw_address where
+                                        city_state like '%Los Angeles%'
+                                        OFFSET 520000
+                                        
+                                        then from that subset, write to csv, and check
+        """
         
         return addresses
     
@@ -132,5 +139,3 @@ def pull_address_data():
 
     
     
-            
-

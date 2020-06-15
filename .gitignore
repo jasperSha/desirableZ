@@ -9,3 +9,8 @@ zillowObject/__pycache__/
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+.spyproject/
+.RData
+.Rhistory
+.DS_Store

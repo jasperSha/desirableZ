@@ -76,7 +76,7 @@ def find_nearby_schools(key, state, city, school_attributes, limit=1):
             'state': state,
             'city':city,
             'limit':limit,
-            'radius':50
+            'radius':10000
             }
         school_profiles = []
         
@@ -257,7 +257,7 @@ def browse_districts(key, state, city):
         print("Some Ambiguous Exception:", e)
 
 
-city = 'Los-Angeles'
+city = 'Los Angeles'
 state = 'CA'
 query = '90063'
 
@@ -286,9 +286,7 @@ school_attributes = {
     }
 
 
-schools = find_nearby_schools(key, state, city,school_attributes, 5508)
-
-# print(schools)
+schools = find_nearby_schools(key, state, city,school_attributes, 17000)
 
 
 census = []
@@ -304,27 +302,28 @@ for school in schools:
     # traits.append(school['lon'])
     # traits.append(school['lat'])
     census.append(traits)
-    
+
+#see all panda columns
+pd.options.display.max_columns = None
+pd.options.display.max_rows = None
+
 schools_df = pd.DataFrame.from_records(census, columns=['gsId','gsRating','type','name','longitude_latitude'])
+schools_df.drop_duplicates
+schools_df.sort_values(by='name')
+print(schools_df.head(), schools_df.shape)
 
-
-# print(schools_df.loc[schools_df['gsId']=='10946'])
+# # print(schools_df.loc[schools_df['gsId']=='10946'])
 
 
 
 schools_df['longitude_latitude'] = schools_df['longitude_latitude'].apply(lambda x: x[10:].strip())
-
-
-
 schools_df['longitude_latitude'] = schools_df['longitude_latitude'].apply(wkt.loads)
-
-
 schools_gdf = gpd.GeoDataFrame(schools_df, geometry='longitude_latitude')
 
-print(schools_gdf.head())
+print(schools_gdf.head(), schools_gdf.shape)
 
 
-schools_gdf.to_file('schools.gpkg', driver='GPKG')
+# schools_gdf.to_file('schools.gpkg', driver='GPKG')
 
 
 
