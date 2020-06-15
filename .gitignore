@@ -14,3 +14,4 @@ zillowObject/__pycache__/
 .RData
 .Rhistory
 .DS_Store
+schools_operation.py
