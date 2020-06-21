@@ -205,18 +205,19 @@ def school_search(key, state, query, levelCode='', limit=2):
         print("Some Ambiguous Exception:", e)
   
 #list of most recent reviews for a school      
-def school_reviews(key, state, city, topicID, gsID, school='school',limit=1):   
+def school_reviews(key, state, city, gsID, topicID=None, school='school',limit=100):   
     try:
-        #school selects specific school(by gsID) or all schools in city
-        #alter url based on components
+        
         if(school=='school'):
+            #review for a specific school by gsID
             url = 'https://api.greatschools.org/reviews/school/%s/%s'%(state, gsID)
         else:
+            #reviews for all schools in particular city
             url = 'https://api.greatschools.org/reviews/city/%s/%s'%(state, city)
         
         params = {
             'key':key,
-            'topicID':topicID,
+            # 'topicID':topicID,
             'limit': limit
             }
         response = requests.get(url, params=params)
@@ -224,7 +225,7 @@ def school_reviews(key, state, city, topicID, gsID, school='school',limit=1):
         print('looking up reviews')
         
         
-        for child in root.iter('name'):
+        for child in root.iter():
             print(child.text)
     except requests.exceptions.ConnectionError as ece:
         print("Connection Error:", ece)
@@ -285,42 +286,48 @@ school_attributes = {
         # 'schoolStatsLink':''
     }
 
+os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
+schools_df = gpd.read_file('greatschools/joined.shp')
 
-schools = find_nearby_schools(key, state, city,school_attributes, 17000)
+schools = schools_df['name'].values.tolist()
+gsIDs = schools_df['gsId'].values.tolist()
+print(schools[0], gsIDs[0])
+
+school_review = school_reviews(key, state, city, gsID=gsIDs[0])
+print(school_review)
+
+# census = []
+# for school in schools:
+#     traits = []
+#     traits.append(school['gsId'])
+#     traits.append(school['gsRating'])
+#     traits.append(school['type'])
+#     # traits.append(school['district'])
+#     traits.append(school['name'])
+#     # school['longitude_latitude'] = 'SRID=4326;POINT(%s %s)'%(school['lon'], school['lat'])
+#     traits.append(school['longitude_latitude'])
+#     # traits.append(school['lon'])
+#     # traits.append(school['lat'])
+#     census.append(traits)
+
+# #see all panda columns
+# pd.options.display.max_columns = None
+# pd.options.display.max_rows = None
+
+# schools_df = pd.DataFrame.from_records(census, columns=['gsId','gsRating','type','name','longitude_latitude'])
+# schools_df.drop_duplicates
+# schools_df.sort_values(by='name')
+# print(schools_df.head(), schools_df.shape)
+
+# # # print(schools_df.loc[schools_df['gsId']=='10946'])
 
 
-census = []
-for school in schools:
-    traits = []
-    traits.append(school['gsId'])
-    traits.append(school['gsRating'])
-    traits.append(school['type'])
-    # traits.append(school['district'])
-    traits.append(school['name'])
-    # school['longitude_latitude'] = 'SRID=4326;POINT(%s %s)'%(school['lon'], school['lat'])
-    traits.append(school['longitude_latitude'])
-    # traits.append(school['lon'])
-    # traits.append(school['lat'])
-    census.append(traits)
 
-#see all panda columns
-pd.options.display.max_columns = None
-pd.options.display.max_rows = None
+# schools_df['longitude_latitude'] = schools_df['longitude_latitude'].apply(lambda x: x[10:].strip())
+# schools_df['longitude_latitude'] = schools_df['longitude_latitude'].apply(wkt.loads)
+# schools_gdf = gpd.GeoDataFrame(schools_df, geometry='longitude_latitude')
 
-schools_df = pd.DataFrame.from_records(census, columns=['gsId','gsRating','type','name','longitude_latitude'])
-schools_df.drop_duplicates
-schools_df.sort_values(by='name')
-print(schools_df.head(), schools_df.shape)
-
-# # print(schools_df.loc[schools_df['gsId']=='10946'])
-
-
-
-schools_df['longitude_latitude'] = schools_df['longitude_latitude'].apply(lambda x: x[10:].strip())
-schools_df['longitude_latitude'] = schools_df['longitude_latitude'].apply(wkt.loads)
-schools_gdf = gpd.GeoDataFrame(schools_df, geometry='longitude_latitude')
-
-print(schools_gdf.head(), schools_gdf.shape)
+# print(schools_gdf.head(), schools_gdf.shape)
 
 
 # schools_gdf.to_file('schools.gpkg', driver='GPKG')
