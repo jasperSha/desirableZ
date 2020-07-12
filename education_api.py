@@ -13,7 +13,6 @@ KEYS:
 key = os.getenv('GREATSCHOOLS_API_KEY')
 
 
-
 import requests
 import xml.etree.ElementTree as ET
 import numpy as np
@@ -224,7 +223,6 @@ def school_reviews(key, state, city, gsID, topicID=None, school='school',limit=1
         root = ET.fromstring(response.content)
         print('looking up reviews')
         
-        
         for child in root.iter():
             print(child.text)
     except requests.exceptions.ConnectionError as ece:
@@ -286,15 +284,25 @@ school_attributes = {
         # 'schoolStatsLink':''
     }
 
+""" 
+the plan now is to compile all of the review ratings of schools without a greatschools
+rating and then average them to generate some sort of approximation. (maybe even more accurate?)
+"""
+
+
+
 os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
 schools_df = gpd.read_file('greatschools/joined.shp')
 
 schools = schools_df['name'].values.tolist()
 gsIDs = schools_df['gsId'].values.tolist()
-print(schools[0], gsIDs[0])
 
-school_review = school_reviews(key, state, city, gsID=gsIDs[0])
-print(school_review)
+# for i, j in list(zip(schools, gsIDs)):
+#     print(j, ': ', i)
+
+school_reviews(key, state, city, gsID=gsIDs[1])
+
+
 
 # census = []
 # for school in schools:
