@@ -284,11 +284,6 @@ school_attributes = {
         # 'schoolStatsLink':''
     }
 
-""" 
-the plan now is to compile all of the review ratings of schools without a greatschools
-rating and then average them to generate some sort of approximation. (maybe even more accurate?)
-"""
-
 
 
 os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
@@ -296,12 +291,10 @@ schools_df = gpd.read_file('greatschools/joined.shp')
 
 schools = schools_df['name'].values.tolist()
 gsIDs = schools_df['gsId'].values.tolist()
+school_type = schools_df['type'].values.tolist()
 
-# for i, j in list(zip(schools, gsIDs)):
-#     print(j, ': ', i)
-
-school_reviews(key, state, city, gsID=gsIDs[1])
-
+# for i, j, k in list(zip(schools, gsIDs, school_type)):
+#     print(j, ': ', i, ' type: ', k)
 
 
 # census = []

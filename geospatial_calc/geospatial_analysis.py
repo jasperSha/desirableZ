@@ -8,11 +8,17 @@ import geopandas as gpd
 from scipy.spatial import cKDTree
 from sklearn.impute import KNNImputer
 from sklearn import preprocessing
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 
 #see all panda columns
 pd.options.display.max_columns = None
 pd.options.display.max_rows = 10
+#turn off chained assignment on dataframe alert
+pd.options.mode.chained_assignment = None
+
+
 
 
 def assign_property_school_districts(properties_df: gpd.GeoDataFrame, districts_df: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -56,7 +62,7 @@ def normalize_columns(zillow_df: pd.DataFrame) -> pd.DataFrame:
 
 
 
-def geo_knearest(origins_df: gpd.GeoDataFrame, neighbors_df: gpd.GeoDataFrame, k=10) -> tuple:
+def geo_knearest(origins_df: gpd.GeoDataFrame, neighbors_df: gpd.GeoDataFrame, k=10) -> list:
     """
     
 
@@ -69,7 +75,7 @@ def geo_knearest(origins_df: gpd.GeoDataFrame, neighbors_df: gpd.GeoDataFrame, k
 
     Returns
     -------
-    2-tuple: (gsID, distance) of neighboring k=10 schools to each property in origins_df (in the same district)
+    2-tuples: list of (gsID, distance) of neighboring k=10 schools to each property in origins_df (in the same district)
 
     """
     
@@ -96,18 +102,14 @@ def geo_knearest(origins_df: gpd.GeoDataFrame, neighbors_df: gpd.GeoDataFrame, k
     gsid = []
     for school_idx in idx:
         gsid.append(neighbors_df['gsId'].iloc[school_idx])
-    gsratings = []
-    #can't do ratings here until we either impute it or once we get the school api key
-    for ratings in idx:
-        gsratings.append(neighbors_df['gsRating'].iloc[ratings].astype('int64'))
+    
+    
+    id_dist = []
+    for tup in list(zip(gsid, dist)):
+        id_dist.append(list(zip(tup[0],tup[1])))
         
     
-    id_ratings_dist = []
-    for tup in list(zip(gsid, gsratings, dist)):
-        id_ratings_dist.append(list(zip(tup[0],tup[1], tup[2])))
-        
-    
-    return id_ratings_dist
+    return id_dist
     
 
     
@@ -132,14 +134,16 @@ def school_imputation(schools_df: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     schools_df with null values replaced with average extrapolated from knearest neighbors,
     using distance metric (influence weighted by inverse of distance).
     
+    Diff methods:
+        1. Multi-variate chained equation (MICE) - dependent on null being missing at random (MAR)
+        2. K-NN + mean imputation (sensitive to outliers)
+        3. Do nothing, leave as null, aggregate ratings where possible
+        
+    Going to use KNN + mean imputation combined with inverse distance weighting; the dataset has little 
+    to no outliers from inspection and MICE is dependent on multiple variables for linear regression 
+    for each step, and these schools only have the one. A caveat is that private/charter schools receive 
+    separate funding from public schools, and this can have a non-negligible effect on their quality.
     
-    Currently this is a bandaid solution for handling null gsRatings.
-    
-    Ratings interpolation is done across and in spite of district lines, as funding for schools,
-    at least in California, is decided at a state level. This does not take into account
-    the differences between public and charter schools. Though the ratings imputation with
-    review aggregation will somewhat make up for the difference, in all honesty quite a few more
-    refinements are needed to truly handle accurate judgments of education quality.
 
     """
     
@@ -148,24 +152,49 @@ def school_imputation(schools_df: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     
     #split into null and not null gsRating values dataframes    
     null_schools = schools_df[schools_df['gsRating'].isnull()]        
-    neighbor_schools = pd.concat([schools_df, null_schools, null_schools]).drop_duplicates(keep=False)
+    rated_schools = pd.concat([schools_df, null_schools, null_schools]).drop_duplicates(keep=False)
     
     #grab k nearest
-    id_ratings_dist = geo_knearest(null_schools, neighbor_schools, k=5)
+    id_dist = geo_knearest(null_schools, rated_schools, k=3)
     
+    count = 0
+    # #using inverse distance interpolation to determine neighbor rating weights
+    for neighbors in id_dist:
     
-    #using inverse distance interpolation to determine neighbor rating weights
-    #defaulting to p=2 for inverse squared
+        #replace gsIDs with respective ratings
+        school_ids = [x[0] for x in neighbors]
+        ratings = []
+        for gsId in school_ids:
+            school = rated_schools.loc[rated_schools['gsId']==gsId]['gsRating']
+            rating = school.iloc[0]
+            ratings.append(float(rating))
+        
+        distances = np.array([x[1] for x in neighbors])
+        
+        #to handle schools whose gps coordinates located in the same spot, scale all by 1 to avoid divide by zero
+        distances += 1
+        
+        #normalize distance weights
+        weights = 1/distances
+        weights /= weights.sum(axis=0)
+        ratings *= weights.T
+        
+        weighted_rating = ratings.sum(axis=0)
+        null_schools.at[count, 'gsRating'] = weighted_rating
+        count += 1
+    full_schools = pd.concat([null_schools, rated_schools], ignore_index=True)
     
-    
+    return full_schools
 
+
+    
     
     
     #using k nearest neighbors for imputation to fill in the NA values
     # imputer = KNNImputer(n_neighbors=5, weights='distance')
     # return imputer.fit_transform(gdf)
     
-    return null_schools, neighbor_schools
+    return rated_schools, null_schools, id_dist
 
 
      
@@ -238,34 +267,23 @@ schools_df = gpd.read_file('greatschools/joined.shp')
 school_districts_df = gpd.read_file('school_districts_bounds/School_District_Boundaries.shp')
 
 #houses with their respective school districts
-schools_joined_districts_df = assign_property_school_districts(zillow_df, school_districts_df)
+zillow_districts_df = assign_property_school_districts(zillow_df, school_districts_df)
 
 
 
-'''
-right now just checking how to grab the k nearest schools and then their ratings. once that's accomplished,
-we then figure out the aggregate_school_ratings function to split on districts, and apply
-geo_knearest on each property/school district.
-'''
+
 # tuples = geo_knearest(schools_joined_districts_df, schools_df, k=10)
 
 
 
-
-# null_schools, neighbors = school_imputation(schools_df)
-# print(null_schools.head(), neighbors.head())
-
+#split properties and rated schools into separate dataframes by district, then match aggregate school ratings
+full_schools = school_imputation(schools_df)
 
 
 
 
 
 
-
-
-# print(LA_zillow_df.shape)
-# print(LA_schools_df.shape)
-# print(LA_crime_df.shape)
 
 
 # input_columns = ['low', 

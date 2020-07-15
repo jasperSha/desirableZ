@@ -39,8 +39,8 @@ def silhouette_analysis(samples_arr: np.array) -> list:
 
     '''
     #possible n clusters derived from ArcGIS heatmap peaks for LA county only
-    range_n_clusters = [13, 14, 15, 16, 17]
-    
+    range_n_clusters = [13, 14]
+    range_n_clusters_01 = [15, 16, 17]
     
     for n_clusters in range_n_clusters:
         #subplot with 1 row, 2 columns
@@ -186,7 +186,11 @@ silhouette_analysis(crime)
         
         
         
-        
+''' 
+For n_clusters= 15 The average silhouette score is:  0.4418387260547816
+For n_clusters= 16 The average silhouette score is:  0.4381448701550302
+For n_clusters= 17 The average silhouette score is:  0.4323762225017948
+'''
         
         
         
