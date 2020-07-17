@@ -24,7 +24,7 @@ creating a crime density map
 
 
 #first determine optimal k for k means
-def silhouette_analysis(samples_arr: np.array) -> list:
+def silhouette_analysis(samples_arr: np.array, cluster_range: list) -> list:
     '''
     
 
@@ -39,10 +39,9 @@ def silhouette_analysis(samples_arr: np.array) -> list:
 
     '''
     #possible n clusters derived from ArcGIS heatmap peaks for LA county only
-    range_n_clusters = [13, 14]
-    range_n_clusters_01 = [15, 16, 17]
     
-    for n_clusters in range_n_clusters:
+    
+    for n_clusters in cluster_range:
         #subplot with 1 row, 2 columns
         fig, (ax1, ax2) = plt.subplots(1, 2)
         fig.set_size_inches(18, 7)
@@ -166,30 +165,162 @@ crime_df = set_bounds(crime_df)
 #clean up index, filter to last 3 years
 crime_df = crime_date_indexing(crime_df)
 
-#get rid of facetious crime reports
+#filter crime by severity
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial_calc/')
-from crime_list import select_crimes
-crime_df = filter_crimes(crime_df, select_crimes)
+from crime_list import misc_crime, violent_crime, property_crime, deviant_crime
 
+misc_df = filter_crimes(crime_df, misc_crime)
+violent_df = filter_crimes(crime_df, violent_crime)
+prop_df = filter_crimes(crime_df, property_crime)
+deviant_df = filter_crimes(crime_df, deviant_crime)
 
 
 #make numpy array of the geometry
-crime = np.array(list(crime_df.geometry.apply(lambda x: (x.x, x.y))))
+misc_coords = np.array(list(misc_df.geometry.apply(lambda x: (x.x, x.y))))
+viol_coords = np.array(list(violent_df.geometry.apply(lambda x: (x.x, x.y))))
+prop_coords = np.array(list(prop_df.geometry.apply(lambda x: (x.x, x.y))))
+devi_coords = np.array(list(deviant_df.geometry.apply(lambda x: (x.x, x.y))))
 
-        
-# #set columns as axes
-# plt.scatter(crime[:,0], crime[:,1])
 
-# plt.show()
+crime_coords = [
+        viol_coords,
+        devi_coords,
+        prop_coords,
+        misc_coords
+    ]
 
-silhouette_analysis(crime)
-        
-        
+crime_categories = [
+    'violent crime',
+    'deviant crime',
+    'property crime',
+    'misc crime'
+    ]
+
+# cluster_range = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+# for crime, cat in list(zip(crime_coords, crime_categories)):
+#     print('Silhouette analysis for %s'%cat)
+#     silhouette_analysis(crime, cluster_range)
+
+#optimal k clusters found for each category (in order of crime_categories)
+k_clusters = [7, 7, 5, 6]
+
+
+def cluster_centers(samples_arr: np.array, n_clusters: int):
+    clusterer = KMeans(n_clusters=n_clusters, random_state=10)
+    clusterer.fit_predict(samples_arr)
+    centers = clusterer.cluster_centers_
+    
+    print('\n', centers)
+
+count = 0
+for category, clusters in list(zip(crime_coords, k_clusters)):
+    print('Finding the cluster centers of %s' %crime_categories[count])
+    cluster_centers(category, clusters)
+    count += 1
+    
+    
         
 ''' 
-For n_clusters= 15 The average silhouette score is:  0.4418387260547816
-For n_clusters= 16 The average silhouette score is:  0.4381448701550302
-For n_clusters= 17 The average silhouette score is:  0.4323762225017948
+
+Rankings:
+    violent
+    deviant
+    property
+    misc
+
+n_clusters for:
+    violent: 7
+    deviant: 7
+    property: 5
+    misc: 6
+
+Finding the cluster centers of violent crime
+
+ [[-118.45151412   34.0124254 ]
+ [-118.32413231   34.06526875]
+ [-118.28262862   33.77410265]
+ [-118.42396278   34.21685481]
+ [-118.28247014   33.97395464]
+ [-118.23632137   34.05834918]
+ [-118.56446515   34.2099804 ]]
+Finding the cluster centers of deviant crime
+
+ [[-118.43043895   34.22563193]
+ [-118.27854408   33.96803486]
+ [-118.18524682   34.07363618]
+ [-118.28512088   33.77325522]
+ [-118.56454426   34.21280439]
+ [-118.45131969   34.01784329]
+ [-118.302618     34.05134275]]
+Finding the cluster centers of property crime
+
+ [[-118.43222082   34.02460634]
+ [-118.27995643   34.05277818]
+ [-118.56361479   34.2101943 ]
+ [-118.27699563   33.88880652]
+ [-118.41965599   34.20491349]]
+Finding the cluster centers of misc crime
+
+ [[-118.48547445   34.01847941]
+ [-118.08054463   34.09186934]
+ [-118.28539372   34.03270877]
+ [-118.42879105   34.2167742 ]
+ [-118.28084153   33.77999705]
+ [-118.57074682   34.20727909]]
+
+
+Silhouette analysis for miscellaneous crimes
+For n_clusters= 4 The average silhouette score is:  0.7803450217369586
+For n_clusters= 5 The average silhouette score is:  0.7925708278405666
+For n_clusters= 6 The average silhouette score is:  0.7945949742817022
+For n_clusters= 7 The average silhouette score is:  0.7569681504572621
+For n_clusters= 8 The average silhouette score is:  0.761738245621019
+For n_clusters= 9 The average silhouette score is:  0.4876120348887703
+For n_clusters= 10 The average silhouette score is:  0.4858918744563427
+For n_clusters= 11 The average silhouette score is:  0.4850010461185952
+For n_clusters= 12 The average silhouette score is:  0.4657703581202816
+For n_clusters= 13 The average silhouette score is:  0.46545949808405057
+For n_clusters= 14 The average silhouette score is:  0.45747888319550845
+
+ Silhouette analysis for violent crimes
+For n_clusters= 4 The average silhouette score is:  0.45408128179358803
+For n_clusters= 5 The average silhouette score is:  0.44232605377567513
+For n_clusters= 6 The average silhouette score is:  0.4466617091766663
+For n_clusters= 7 The average silhouette score is:  0.4634825380143094
+For n_clusters= 8 The average silhouette score is:  0.4477940405182154
+For n_clusters= 9 The average silhouette score is:  0.42747112234010776
+For n_clusters= 10 The average silhouette score is:  0.4323360278132864
+For n_clusters= 11 The average silhouette score is:  0.4376877046494286
+For n_clusters= 12 The average silhouette score is:  0.4190021459787022
+For n_clusters= 13 The average silhouette score is:  0.4161816040334206
+For n_clusters= 14 The average silhouette score is:  0.4088476019770265
+
+Silhouette analysis for property crimes
+For n_clusters= 4 The average silhouette score is:  0.44510826507033174
+For n_clusters= 5 The average silhouette score is:  0.4613739930846025
+For n_clusters= 6 The average silhouette score is:  0.4062359533362962
+For n_clusters= 7 The average silhouette score is:  0.4394407973235615
+For n_clusters= 8 The average silhouette score is:  0.42784712097806243
+For n_clusters= 9 The average silhouette score is:  0.4160342740260717
+For n_clusters= 10 The average silhouette score is:  0.4184097987196484
+For n_clusters= 11 The average silhouette score is:  0.4138935228642149
+For n_clusters= 12 The average silhouette score is:  0.41031383251966747
+For n_clusters= 13 The average silhouette score is:  0.4178503048084896
+For n_clusters= 14 The average silhouette score is:  0.42414359774287863
+
+Silhouette analysis for deviant crimes
+For n_clusters= 4 The average silhouette score is:  0.46050230317224206
+For n_clusters= 5 The average silhouette score is:  0.4682914039827742
+For n_clusters= 6 The average silhouette score is:  0.4505054784412173
+For n_clusters= 7 The average silhouette score is:  0.4724689771122283
+For n_clusters= 8 The average silhouette score is:  0.44895609167869477
+For n_clusters= 9 The average silhouette score is:  0.45076801402856465
+For n_clusters= 10 The average silhouette score is:  0.44390575640618546
+For n_clusters= 11 The average silhouette score is:  0.4450192688107003
+For n_clusters= 12 The average silhouette score is:  0.4274026946228304
+For n_clusters= 13 The average silhouette score is:  0.41139991714713475
+For n_clusters= 14 The average silhouette score is:  0.40827149632348647
+
 '''
         
         
