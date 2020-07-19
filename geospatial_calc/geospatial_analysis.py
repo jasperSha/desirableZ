@@ -14,7 +14,7 @@ import matplotlib.cm as cm
 
 #see all panda columns
 pd.options.display.max_columns = None
-pd.options.display.max_rows = 10
+pd.options.display.max_rows = None
 #turn off chained assignment on dataframe alert
 pd.options.mode.chained_assignment = None
 
@@ -120,7 +120,7 @@ def geo_knearest(origins_df: gpd.GeoDataFrame, neighbors_df: gpd.GeoDataFrame, k
 
 
 
-def school_imputation(schools_df: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+def school_imputation(schools_df: gpd.GeoDataFrame, k: int=3) -> gpd.GeoDataFrame:
     """
     
 
@@ -155,7 +155,7 @@ def school_imputation(schools_df: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     rated_schools = pd.concat([schools_df, null_schools, null_schools]).drop_duplicates(keep=False)
     
     #grab k nearest
-    id_dist = geo_knearest(null_schools, rated_schools, k=3)
+    id_dist = geo_knearest(null_schools, rated_schools, k=k)
     
     count = 0
     # #using inverse distance interpolation to determine neighbor rating weights
@@ -179,26 +179,15 @@ def school_imputation(schools_df: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
         weights /= weights.sum(axis=0)
         ratings *= weights.T
         
-        weighted_rating = ratings.sum(axis=0)
+        weighted_rating = round(ratings.sum(axis=0))
         null_schools.at[count, 'gsRating'] = weighted_rating
         count += 1
     full_schools = pd.concat([null_schools, rated_schools], ignore_index=True)
     
     return full_schools
 
-
-    
-    
-    
-    #using k nearest neighbors for imputation to fill in the NA values
-    # imputer = KNNImputer(n_neighbors=5, weights='distance')
-    # return imputer.fit_transform(gdf)
-    
-    return rated_schools, null_schools, id_dist
-
-
      
-def aggregate_school_ratings(properties_df: gpd.GeoDataFrame, schools_df: gpd.GeoDataFrame, kn=3, kavg=5) -> gpd.GeoDataFrame:
+def split_apply_combine(properties_df: gpd.GeoDataFrame, schools_df: gpd.GeoDataFrame, kavg: int=5) -> gpd.GeoDataFrame:
     """
     
     Parameters
@@ -209,11 +198,8 @@ def aggregate_school_ratings(properties_df: gpd.GeoDataFrame, schools_df: gpd.Ge
     schools_df : GeoDataFrame
         Dataframe of schools, 'geometry' column in WKT format
         
-    kn : Integer
-        Number of nearest schools for display
-        
     kavg : Integer
-        Number of nearest schools to calculate average GreatSchools rating
+        Number of nearest schools used to calculate average GreatSchools rating
 
     Returns
     -------
@@ -228,8 +214,9 @@ def aggregate_school_ratings(properties_df: gpd.GeoDataFrame, schools_df: gpd.Ge
     #may be computationally inefficient?
     
     #
-    properties_grouped = properties_df.groupby('DISTRICT')
-    schools_grouped = schools_df.groupby('DISTRICT')
+    properties = properties_df.groupby('DISTRICT')
+    schools = schools_df.groupby('DISTRICT')
+    
     
     
     
@@ -237,7 +224,7 @@ def aggregate_school_ratings(properties_df: gpd.GeoDataFrame, schools_df: gpd.Ge
     
     
 
-    return None
+    return properties, schools
 
 def split_columns(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
@@ -267,7 +254,7 @@ schools_df = gpd.read_file('greatschools/joined.shp')
 school_districts_df = gpd.read_file('school_districts_bounds/School_District_Boundaries.shp')
 
 #houses with their respective school districts
-zillow_districts_df = assign_property_school_districts(zillow_df, school_districts_df)
+zill_df = assign_property_school_districts(zillow_df, school_districts_df)
 
 
 
@@ -280,9 +267,22 @@ zillow_districts_df = assign_property_school_districts(zillow_df, school_distric
 full_schools = school_imputation(schools_df)
 
 
+'''
+get group by unique values to list of properties,
+get_group of 
+
+'''
 
 
 
+props, schols = split_apply_combine(zill_df, full_schools)
+
+
+p = list(props)
+s = list(schols)
+print(p[0])
+print(props.get_group('ALHAMBRA CITY HIGH/ALHAMBRA CITY ELEM'))
+print(schols.get_group('ALHAMBRA CITY HIGH/ALHAMBRA CITY ELEM'))
 
 
 

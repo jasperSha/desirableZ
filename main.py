@@ -90,6 +90,12 @@ def run_raw_address(citystatezip, address): #wrap into a function elsewhere?
     except:
         print("address failure somewhere")
         
+        
+'''
+TODO:
+    build update function for zillow properties and compiling into shapefile
+'''        
+
 
 if __name__=='__main__':
     
