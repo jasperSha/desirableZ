@@ -62,7 +62,7 @@ def normalize_columns(zillow_df: pd.DataFrame) -> pd.DataFrame:
 
 
 
-def geo_knearest(origins_df: gpd.GeoDataFrame, neighbors_df: gpd.GeoDataFrame, k=10) -> list:
+def geo_knearest(origins_df: gpd.GeoDataFrame, neighbors_df: gpd.GeoDataFrame, impute: bool=True, k: int=10) -> list:
     """
     
 
@@ -75,7 +75,12 @@ def geo_knearest(origins_df: gpd.GeoDataFrame, neighbors_df: gpd.GeoDataFrame, k
 
     Returns
     -------
-    2-tuples: list of (gsID, distance) of neighboring k=10 schools to each property in origins_df (in the same district)
+    List of lists of 2-tuples: (gsID, distance) of neighboring k=10 schools to each property in origins_df 
+                               (in the same district). each list correponds to the same index of the individual
+                               row in the origins_df (one to many relationship)
+                               
+                               if NOT impute: returns dictionary of lists for each housing property, ie
+                               { 'zpid' : [(gsID, distance), (gsID, distance) ...] }
 
     """
     
@@ -99,23 +104,24 @@ def geo_knearest(origins_df: gpd.GeoDataFrame, neighbors_df: gpd.GeoDataFrame, k
     dist, idx = btree.query(origins, k)
     
     #using the dataframe index to find the gsID of the neighboring schools
-    gsid = []
+    gsids = []
     for school_idx in idx:
-        gsid.append(neighbors_df['gsId'].iloc[school_idx])
+        gsids.append(neighbors_df['gsId'].iloc[school_idx])
     
     
     id_dist = []
-    for tup in list(zip(gsid, dist)):
+    for tup in list(zip(gsids, dist)):
         id_dist.append(list(zip(tup[0],tup[1])))
+          
+    if impute:
+        return id_dist
+    else:
+        #aggregating for property, explicitly returning the associated zpid
+        zpids = origins_df['zpid'].tolist()
+        zp_id_dist = dict(zip(zpids, id_dist))
+        return zp_id_dist
+    
         
-    
-    return id_dist
-    
-
-    
-    
-    
-    
 
 
 
@@ -157,10 +163,8 @@ def school_imputation(schools_df: gpd.GeoDataFrame, k: int=3) -> gpd.GeoDataFram
     #grab k nearest
     id_dist = geo_knearest(null_schools, rated_schools, k=k)
     
-    count = 0
     # #using inverse distance interpolation to determine neighbor rating weights
-    for neighbors in id_dist:
-    
+    for null_index, neighbors in enumerate(id_dist):
         #replace gsIDs with respective ratings
         school_ids = [x[0] for x in neighbors]
         ratings = []
@@ -180,8 +184,9 @@ def school_imputation(schools_df: gpd.GeoDataFrame, k: int=3) -> gpd.GeoDataFram
         ratings *= weights.T
         
         weighted_rating = round(ratings.sum(axis=0))
-        null_schools.at[count, 'gsRating'] = weighted_rating
-        count += 1
+        
+        #replace null school with imputed value
+        null_schools.at[null_index, 'gsRating'] = weighted_rating
     full_schools = pd.concat([null_schools, rated_schools], ignore_index=True)
     
     return full_schools
@@ -248,6 +253,10 @@ def split_columns(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
 zillow_df = gpd.read_file('zillow/zillow.shp')
 
+awsz_df = gpd.read_file('zillowdb/zillowaws.shp')
+awsz_df.drop_duplicates(subset=['street', 'city'],inplace=True)
+
+
 schools_df = gpd.read_file('greatschools/joined.shp')
 
 #school district boundaries
@@ -268,21 +277,66 @@ full_schools = school_imputation(schools_df)
 
 
 '''
-get group by unique values to list of properties,
-get_group of 
+first: get list of all the districts the properties are in.
+second: group the schools by districts
+third: iterate through each property (individuals), feed that into function with corresponding
+       schools frame to find knn
+fourth: aggregate ratings.
+
+
 
 '''
 
 
 
-props, schols = split_apply_combine(zill_df, full_schools)
 
 
-p = list(props)
-s = list(schols)
-print(p[0])
-print(props.get_group('ALHAMBRA CITY HIGH/ALHAMBRA CITY ELEM'))
-print(schols.get_group('ALHAMBRA CITY HIGH/ALHAMBRA CITY ELEM'))
+
+def property_school_rating(zill_df: gpd.GeoDataFrame, full_schools: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    props, schols = split_apply_combine(zill_df, full_schools)
+
+    property_districts = zill_df['DISTRICT'].unique()
+    
+    schol_distr = [schols.get_group(x) for x in schols.groups]
+    prop_distr = [props.get_group(x) for x in props.groups]
+
+
+    #grab dataframe separated by district
+    for house_district_group in prop_distr:
+        #initialize education quality column
+        house_district_group['edu_rating'] = np.nan
+        
+        
+        district = house_district_group['DISTRICT'].unique()[0]
+        schools = schols.get_group(district)
+        
+        #get neighboring schools in the same district
+        zp_id_dist = geo_knearest(house_district_group, schools, impute=False, k=10)
+        for house, neighboring_schools in zp_id_dist.items():
+            #replace gsIDs with respective ratings
+            school_ids = [x[0] for x in neighboring_schools]
+            ratings = []
+            for gsId in school_ids:
+                school = schools.loc[schools['gsId']==gsId]['gsRating']
+                rating = school.iloc[0]
+                ratings.append(float(rating))
+            
+            distances = np.array([x[1] for x in neighboring_schools])
+            
+            #to handle schools whose gps coordinates located in the same spot, scale all by 1 to avoid divide by zero
+            distances += 1
+            
+            #normalize distance weights
+            weights = 1/distances
+            weights /= weights.sum(axis=0)
+            ratings *= weights.T
+            
+            weighted_rating = ratings.sum(axis=0)
+            
+            #append the aggregate rating to associated housing property
+            house_district_group['edu_rating'].loc[house_district_group['zpid']==house] = weighted_rating
+        print(house_district_group)
+        break
 
 
 

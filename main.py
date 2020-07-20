@@ -19,7 +19,9 @@ from deepsearchresults import deep_search
 import postgrestaccess
 from zipcode_parse import parse_gpkg as gpkg
 import pandas as pd
-
+import geopandas as gpd
+import xml.etree.ElementTree as ET
+import requests
 
 
 
@@ -96,20 +98,36 @@ TODO:
     build update function for zillow properties and compiling into shapefile
 '''        
 
+def retrieve_zpid():
+    os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
+    awz = gpd.read_file('zillowdb/zillowaws.shp')
+    awz.drop_duplicates(subset=['street', 'city'],inplace=True)
+
+    streets = awz['street'].values.tolist()
+    city = awz['city'].values.tolist()
+    
+    addresses = list(zip(streets, city))
+    awz['zpid'] = ''
+    os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ')
+    
+    for index, house in enumerate(addresses):
+        url = 'https://zillow.com/webservice/GetDeepSearchResults.htm'
+        parameters = {
+            "zws-id": key,
+            'address': house[0], #format: number+street+dr dr or drive ok
+            'citystatezip': house[1] #format: city+state_abbreviation
+        }
+        response = requests.get(url, params=parameters)
+        root = ET.fromstring(response.content)
+        # print("Grabbing deepsearch values now...")
+        for element in root.iter('zpid'):
+            zpid = element.text
+        awz.at[index, 'zpid'] = zpid
+    return awz
 
 if __name__=='__main__':
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+        
         
         
         
