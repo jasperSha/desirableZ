@@ -253,9 +253,18 @@ def split_columns(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
 zillow_df = gpd.read_file('zillow/zillow.shp')
 
-awsz_df = gpd.read_file('zillowdb/zillowaws.shp')
-awsz_df.drop_duplicates(subset=['street', 'city'],inplace=True)
+# os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
+# awz = gpd.read_file('zillowdb/zillowaws.shp')
+# awz.drop_duplicates(subset=['street', 'city'],inplace=True)
+print(zillow_df.tail())
 
+
+
+'''
+TODO:
+awz.csv -> gdf, fix column names, concat with zillow_df, drop duplicates
+
+'''
 
 schools_df = gpd.read_file('greatschools/joined.shp')
 

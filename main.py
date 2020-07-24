@@ -22,7 +22,8 @@ import pandas as pd
 import geopandas as gpd
 import xml.etree.ElementTree as ET
 import requests
-
+import time, signal, sys
+terminate = False
 
 
 #default property values
@@ -98,19 +99,25 @@ TODO:
     build update function for zillow properties and compiling into shapefile
 '''        
 
-def retrieve_zpid():
+def retrieve_zpid(prev_index):
     os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
     awz = gpd.read_file('zillowdb/zillowaws.shp')
     awz.drop_duplicates(subset=['street', 'city'],inplace=True)
-
+    
+    state = 'CA'
     streets = awz['street'].values.tolist()
     city = awz['city'].values.tolist()
+    citystate = ['%s %s'%(x, state) for x in city]
     
-    addresses = list(zip(streets, city))
+    addresses = list(zip(streets, citystate))
     awz['zpid'] = ''
     os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ')
     
-    for index, house in enumerate(addresses):
+    for index, house in enumerate(addresses, start=prev_index):
+        
+        if (index-prev_index==200):
+            time.sleep(30)
+        
         url = 'https://zillow.com/webservice/GetDeepSearchResults.htm'
         parameters = {
             "zws-id": key,
@@ -118,16 +125,71 @@ def retrieve_zpid():
             'citystatezip': house[1] #format: city+state_abbreviation
         }
         response = requests.get(url, params=parameters)
+        
         root = ET.fromstring(response.content)
-        # print("Grabbing deepsearch values now...")
+        zpid = ''
         for element in root.iter('zpid'):
             zpid = element.text
-        awz.at[index, 'zpid'] = zpid
-    return awz
+        if zpid in ['', None]:
+            print('Reached API limit; new index at: ', index)
+            break
+        else:
+            print(zpid)
+            awz.at[index, 'zpid'] = zpid
+            
+    
+    awz = awz.iloc[prev_index:index]
+    awz.to_csv('awzpid%s_%s.csv'%(prev_index,index))
+    return
+
+def signal_handling(signum, frame):
+    global terminate
+    terminate = True
+
+def fix_shp(prev_count):
+    #set signal handler for stopping to write file
+    signal.signal(signal.SIGINT, signal_handling)
+    
+
+    os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
+    awz = gpd.read_file('zillowdb/zillowaws.shp')
+    awz.drop_duplicates(subset=['street', 'city'],inplace=True)
+    
+    state = 'CA'
+    streets = awz['street'].values.tolist()
+    city = awz['city'].values.tolist()
+    citystate = ['%s %s'%(x, state) for x in city]
+    
+    addresses = list(zip(streets, citystate))
+    new_awz = pd.DataFrame()
+    for count, house in enumerate(addresses[prev_count:], start=prev_count):
+        if terminate:
+            break
+        zill = run_raw_address(house[1], house[0])
+        new_awz = new_awz.append(zill, ignore_index=True)
+    print(new_awz.head())
+    os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
+    new_awz.to_csv('awzillow_%s_%s.csv'% (prev_count, count))
+    return
+        
 
 if __name__=='__main__':
     
-        
-        
-        
-        
+    fix_shp(26017)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
