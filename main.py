@@ -173,9 +173,9 @@ def fix_shp(prev_count):
     return
         
 
-if __name__=='__main__':
+if __name__=='__main__': 
     
-    fix_shp(26017)
+    fix_shp(36244)
     
     
     

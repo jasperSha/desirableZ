@@ -7,6 +7,7 @@ from sklearn.metrics import silhouette_samples, silhouette_score
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from shapely import geometry
+from scipy import stats
 
 #see all panda columns/rows
 pd.options.display.max_columns = None
@@ -24,15 +25,15 @@ creating a crime density map
 
 
 #first determine optimal k for k means
-def silhouette_analysis(samples_arr: np.array, cluster_range: list) -> list:
+def silhouette_analysis(samples_arr: np.array, cluster_range: list):
     '''
     
 
     Parameters
     ----------
-    samples_arr : TYPE
-        numpy array of geographical points.
-    cluster_range : 
+    samples_arr : numpy array
+        clusters of geographical points.
+    cluster_range : list
         range of potential numbers of clusters.
 
     Returns
@@ -120,7 +121,7 @@ def silhouette_analysis(samples_arr: np.array, cluster_range: list) -> list:
     
     
     plt.show()
-    return None
+    return
 
 
 def set_bounds(crime_df):
@@ -161,7 +162,7 @@ def build_coords():
     os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
     crime_df = gpd.read_file('fullcrime/full_crimes.shp')
     
-    #remove outliers based on city bounds
+    #remove extreme outliers based on city bounds (faulty dataset)
     crime_df = set_bounds(crime_df)
     
     #clean up index, filter to last 3 years
@@ -197,8 +198,54 @@ def build_coords():
         'property crime',
         'misc crime'
         ]
+    
     return crime_coords, crime_categories
 
+
+def full_crime_compile(silhouette: bool=False):
+    '''
+    
+    silhouette analysis for all crimes together to find clusters, then weight
+    by crime category during kde density estimation instead.
+    
+    RETURNS
+    -------
+    Graphs of silhouette analysis ratings
+    or
+    compiled crime data as dataframe, and numpy array of coordinates of each geometry point.
+    '''
+    
+    n_clusters = [13, 14]
+    
+    os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
+    crime_df = gpd.read_file('fullcrime/full_crimes.shp')
+    
+    #remove extreme outliers based on city bounds (faulty dataset)
+    crime_df = set_bounds(crime_df)
+    
+    #clean up index, filter to last 3 years
+    crime_df = crime_date_indexing(crime_df)
+    
+    #filter crime by severity
+    os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial_calc/')
+    from crime_list import misc_crime, violent_crime, property_crime, deviant_crime
+    full_crime = []
+    full_crime = misc_crime + violent_crime + property_crime + deviant_crime
+    
+    full_df = filter_crimes(crime_df, full_crime)
+    full_coords = np.array(list(full_df.geometry.apply(lambda x: (x.x, x.y))))
+    
+    if silhouette:
+        silhouette_analysis(full_coords, n_clusters)
+    else:
+        return full_df, full_coords
+
+
+
+
+'''
+silhouette analysis after crimes have been categorized separately
+'''
 # cluster_range = [4, 5, 6, 7, 8, 9, 10]
 # cl_range = [9, 10]
 
@@ -217,6 +264,9 @@ def build_coords():
 # k_clusters = [5, 7, 5, 6]
 
 
+
+
+
 def cluster_centers(samples_arr: np.array, crime_categories: list, crime_coords: list, k_clusters: list, n_clusters: int):
     clusterer = KMeans(n_clusters=n_clusters, random_state=10)
     clusterer.fit_predict(samples_arr)
@@ -224,18 +274,55 @@ def cluster_centers(samples_arr: np.array, crime_categories: list, crime_coords:
     
     print('\n', centers)
 
-    count = 0
-    for category, clusters in list(zip(crime_coords, k_clusters)):
-        print('Finding the cluster centers of %s' %crime_categories[count])
-        cluster_centers(category, clusters)
-        count += 1
+# count = 0
+# for category, clusters in list(zip(crime_coords, k_clusters)):
+#     print('Finding the cluster centers of %s' %crime_categories[count])
+#     cluster_centers(category, clusters)
+#     count += 1
 
+def fullcrime_kmeans(fullcrime_df: gpd.GeoDataFrame, fullcrime_coords: np.array, n_clusters: int):
+    '''
+    
 
-#quartic as crime patterns theoretically follow a normal distribution, though this topic has not been fully addressed
-def kde_quartic(d,h):
-    dn=d/h
-    P=(15/16)*(1-dn**2)**2
-    return P
+    Parameters
+    ----------
+    fullcrime_df : gpd.GeoDataFrame
+        all crimes with descriptions, geometry points.
+    fullcrime_coords : np.array
+        coordinates of crimes as numpy array.
+    n_clusters : int
+        optimal number of clusters for KMeans, a prior with silhouette analysis.
+
+    Returns
+    -------
+    fullcrime_df : gdp.GeoDataFrame
+        crimes with cluster labels attached.
+    clusters : list of lists
+        list of cluster groups
+    centers : list of numpy arrays
+        center of each cluster.
+
+    '''
+    
+    clusterer = KMeans(n_clusters=n_clusters, random_state=10)
+    clusterer.fit_predict(fullcrime_coords)
+    
+    centers = clusterer.cluster_centers_
+    
+    #cluster id labels
+    labels = clusterer.labels_
+    
+    fullcrime_df['clusters'] = labels
+    
+    
+    #find most common crime by cluster
+    #pandas groupby returns a Series object, so using scipy's mode module as alternative
+    # print(fullcrime_df.groupby(['clusters']).agg(lambda x: stats.mode(x)[0]))
+    
+    clusters_df = fullcrime_df.groupby('clusters')
+    clusters = [clusters_df.get_group(x) for x in clusters_df.groups]
+    
+    return clusters_df, clusters, centers
 
 
 
@@ -265,6 +352,8 @@ h= 0.01 (2nd for influence of village to another)
     
         
 ''' 
+
+For full crime df combined, optimal n_clusters was 15
 
 Rankings:
     violent

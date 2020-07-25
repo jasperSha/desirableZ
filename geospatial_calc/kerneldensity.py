@@ -4,6 +4,8 @@ import math
 import numpy as np
 import sys
 from numba import njit, jit
+from scipy.spatial import distance
+from crime_density import full_crime_compile, fullcrime_kmeans
 
 #display entire numpy array
 np.set_printoptions(threshold=sys.maxsize)
@@ -60,34 +62,74 @@ of over a million points is impractical.
 Quartic function equation:
 dn = distance / h, where h is the chosen bandwidth
 then,
-P(x) = KWI*(15/16)*(1-dn**2)**2
+P(x) = KWI*(15/16)*(1-dn**2)**2,
+where the density value is comprised of K, a constant, W, a weight, and I, the intensity
 
 The determination of bandwidth has the most impact on the resultant output however.
 
-Initially adaptive kernel bandwidth determination was to be used, but as this
-iteration of data analysis is limited by only having crime data from LA county,
-and because that dataset is NOT sparsely populated, using a static kernel bandwidth 
-will be optimal.
+We will use locally adaptive bandwidth, adjusting to each cluster found through prior
+silhouette analysis.
 
 Using Silverman's Rule of Thumb bandwidth estimation formula, extrapolated to
 two dimensions, we derive the formula for determining h as such:
-    1. Calculate the mean center of input points, weighted by features (in this case
-                                                                        by crime type)
+    1. Calculate the mean center of input points
     2. Calculate distance from mean center for all points
-    3. Calculate median of all the distances
+    3. Calculate median of all the distances (Dm)
     4. Calculate Standard Distance (simply standard deviation of the distances) as SD
     
     5. Finally, h = 0.9 * min(SD, sqrt(1/ln(2))*Dm) * n**-0.2,
        where Dm is the median distance.
        
-However, as there are multiple clusters in the LA county crime dataset, we'll use
-apply this bandwidth estimation to each cluster (as determined before using our silhouette
-                                                 analysis algorithm),
-and get a different bandwidth for each cluster, and then essentially divide the
-dataset into each cluster and apply the kernel density to each with their respective
-bandwidths.
+
 
 '''
+
+def kernelbandwidth(cluster_group: np.array, cluster_center: np.array) -> tuple:
+    '''
+    Parameters
+    -------
+    cluster_points: 2d array
+                    array of geographical points.
+    
+    cluster_center: 2d array
+                    geographical center of cluster
+                    
+    
+    Returns
+    -------
+    h : float
+        optimal bandwidth for kernel density estimation
+
+    '''
+    #tweak dimensions for cdist
+    cluster_group_arr = np.vstack(cluster_group)
+    center = np.array([cluster_center])
+    
+    dist_array = distance.cdist(center, cluster_group_arr, 'euclidean')
+    
+    standard_distance = np.std(dist_array)
+    median_distance = np.median(dist_array)
+    N = cluster_group_arr.size
+    
+    h = 0.9 * min(standard_distance, math.sqrt(1/np.log(2)) * median_distance) * N**-0.2
+    
+    return dist_array
+
+
+
+crime_df, crime_coords = full_crime_compile()
+
+clusters_df, clusters, centers = fullcrime_kmeans(crime_df, crime_coords, 15)
+
+cluster_group = np.array(list(clusters[0].geometry.apply(lambda x: (x.x, x.y))))
+
+# print(kernelbandwidth(cluster_group, centers[0]))
+
+
+
+
+
+
 # @jit(nopython=True)
 def kde_quartic(d,h):
     #normalize distance(d) by dividing by radius length(h)
@@ -118,13 +160,19 @@ def generate_intensity(x, y, xc, yc):
         intensity_list.append(intensity_row)
     return intensity_list
 
-#HEATMAP OUTPUT
-# for row in intensity_list:
-#     print(row)
-intensity_list = generate_intensity(x, y, xc, yc)
-intensity=np.array(intensity_list)
-print(intensity)
-plt.pcolormesh(x_mesh,y_mesh,intensity)
-plt.plot(x,y,'ro')
-plt.colorbar()
-plt.show()
+# #HEATMAP OUTPUT
+# # for row in intensity_list:
+# #     print(row)
+# intensity_list = generate_intensity(x, y, xc, yc)
+# intensity=np.array(intensity_list)
+# print(intensity)
+# plt.pcolormesh(x_mesh,y_mesh,intensity)
+# plt.plot(x,y,'ro')
+# plt.colorbar()
+# plt.show()
+
+
+
+
+
+
