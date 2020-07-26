@@ -6,6 +6,7 @@ import sys
 from numba import njit, jit
 from scipy.spatial import distance
 from crime_density import full_crime_compile, fullcrime_kmeans
+import time
 
 #display entire numpy array
 np.set_printoptions(threshold=sys.maxsize)
@@ -21,9 +22,9 @@ y = np.asarray(y, dtype=np.float64)
 
 #DEFINE GRID SIZE AND RADIUS(h)
 #grid_size 3rd decimal for (longitudinal) area of a large field
-grid_size=5
+grid_size=1
 #h is our kernel radius to determine cluster influence
-h=10
+h=1.88
 
 #GETTING X,Y MIN AND MAX
 x_min=min(x)
@@ -57,10 +58,10 @@ The quartic kernel is also less granular than a negative exponential or triangul
 distribution, which have much more dramatic falloffs but produce finer variations;
 due to computational/optimization concerns, the quartic also has the advantage of the
 other two, as despite their greater accuracy, using those distributions for a dataset
-of over a million points is impractical.
+of over a million points is more cumbersome.
 
 Quartic function equation:
-dn = distance / h, where h is the chosen bandwidth
+let dn = distance / h, where h is the chosen bandwidth
 then,
 P(x) = KWI*(15/16)*(1-dn**2)**2,
 where the density value is comprised of K, a constant, W, a weight, and I, the intensity
@@ -72,14 +73,28 @@ silhouette analysis.
 
 Using Silverman's Rule of Thumb bandwidth estimation formula, extrapolated to
 two dimensions, we derive the formula for determining h as such:
-    1. Calculate the mean center of input points
+    1. Calculate the mean center of input points (done a priori)
     2. Calculate distance from mean center for all points
-    3. Calculate median of all the distances (Dm)
+    3. Calculate interquartile range of distances (IQR)
     4. Calculate Standard Distance (simply standard deviation of the distances) as SD
     
-    5. Finally, h = 0.9 * min(SD, sqrt(1/ln(2))*Dm) * n**-0.2,
+    5**. Finally, h = 0.9 * min(SD, IQR/1.34) * n**-0.2,
        where Dm is the median distance.
-       
+
+**This formula for h optimizes the bandwidth by minimizing the 
+mean integrated square error (MISE); however, this formula relies on the data
+to follow a mostly normal distribution. in some cases, a bimodal distribution
+using this bandwidth estimator can give wildly inaccurate results. However,
+we will attempt to mitigate this possibility through accurate binning of the data.
+(most likely going to be using longitude/latitude precision of ~0.01)
+
+
+
+With one of the test clusters concerning concurrent crime data, the h bandwidth returned
+is intuitively accurate as well, holding a value of 0.00102324 for 14 clusters.
+This value coincides with the general area of three decimal places of a longitude/latitude
+measurement, where three places represents about the area of a large agricultural field or
+institutional campus.
 
 
 '''
@@ -106,27 +121,28 @@ def kernelbandwidth(cluster_group: np.array, cluster_center: np.array) -> tuple:
     center = np.array([cluster_center])
     
     dist_array = distance.cdist(center, cluster_group_arr, 'euclidean')
-    
     standard_distance = np.std(dist_array)
-    median_distance = np.median(dist_array)
     N = cluster_group_arr.size
     
-    h = 0.9 * min(standard_distance, math.sqrt(1/np.log(2)) * median_distance) * N**-0.2
+    q1 = np.percentile(cluster_group_arr, 25, interpolation='midpoint')
+    q3 = np.percentile(cluster_group_arr, 75, interpolation='midpoint')
+    IQR = q3 - q1
     
-    return dist_array
+    h = 0.9 * min(standard_distance, IQR/1.34) * N**-0.2
+    
+    return h
 
 
 
-crime_df, crime_coords = full_crime_compile()
+# crime_df, crime_coords = full_crime_compile()
 
-clusters_df, clusters, centers = fullcrime_kmeans(crime_df, crime_coords, 15)
+# clusters_df, clusters, centers = fullcrime_kmeans(crime_df, crime_coords, n_clusters=14)
 
-cluster_group = np.array(list(clusters[0].geometry.apply(lambda x: (x.x, x.y))))
+# #first cluster group
+# cluster_group = np.array(list(clusters[0].geometry.apply(lambda x: (x.x, x.y))))
+
 
 # print(kernelbandwidth(cluster_group, centers[0]))
-
-
-
 
 
 
@@ -135,7 +151,11 @@ def kde_quartic(d,h):
     #normalize distance(d) by dividing by radius length(h)
     dn=d/h
     
-    P=(15/16)*(1-dn**2)**2
+    #Gaussian
+    P = (3/math.pi)*(1-dn**2)**2
+    
+    #quartic
+    # P=(15/16)*(1-dn**2)**2
     return P
 
 #PROCESSING
@@ -155,7 +175,8 @@ def generate_intensity(x, y, xc, yc):
                     p=0
                 kde_value_list.append(p)
             #SUM ALL INTENSITY VALUE
-            p_total=sum(kde_value_list)
+            coeff = 1/h**2
+            p_total=coeff * sum(kde_value_list)
             intensity_row.append(p_total)
         intensity_list.append(intensity_row)
     return intensity_list
@@ -172,6 +193,23 @@ def generate_intensity(x, y, xc, yc):
 # plt.show()
 
 
+
+
+
+'''
+following is for checking cluster center
+'''
+# x, y = [], []
+# for arr in cluster_group:
+#     x.append(arr[0])
+#     y.append(arr[1])
+# x2 = centers[0][0]
+# y2 = centers[0][1]
+
+# colors = (0, 0, 0)
+# plt.scatter(x, y, s=1, c=colors, alpha=0.5)
+# plt.scatter(x2, y2, s=2, c='blue', alpha=1)
+# plt.show()
 
 
 
