@@ -7,41 +7,11 @@ from numba import njit, jit
 from scipy.spatial import distance
 from crime_density import full_crime_compile, fullcrime_kmeans
 import time
+from crime_list import misc_crime, property_crime, violent_crime, deviant_crime
 
 #display entire numpy array
 np.set_printoptions(threshold=sys.maxsize)
 
-
-#POINT DATASET
-x=[16,16,16,15,15,28,15,18,25,15,18,25,30,25,22,30,22,38,40,38,30,22,20,35,33,35]
-y=[50,49,48,45,40,14,15,15,20,32,33,20,20,20,25,30,38,20,28,33,50,48,40,30,35,36]
-
-#convert to numpy arrays
-x = np.asarray(x, dtype=np.float64)
-y = np.asarray(y, dtype=np.float64)
-
-#DEFINE GRID SIZE AND RADIUS(h)
-#grid_size 3rd decimal for (longitudinal) area of a large field
-grid_size=1
-#h is our kernel radius to determine cluster influence
-h=1.88
-
-#GETTING X,Y MIN AND MAX
-x_min=min(x)
-x_max=max(x)
-y_min=min(y)
-y_max=max(y)
-
-#CONSTRUCT GRID
-x_grid=np.arange(x_min-h,x_max+h,grid_size)
-y_grid=np.arange(y_min-h,y_max+h,grid_size)
-x_mesh,y_mesh=np.meshgrid(x_grid,y_grid)
-
-#GRID CENTER POINT
-
-xc=x_mesh+(grid_size/2)
-
-yc=y_mesh+(grid_size/2)
 
 '''
 Using the quartic kernel distribution for the density estimation.
@@ -74,7 +44,7 @@ silhouette analysis.
 Using Silverman's Rule of Thumb bandwidth estimation formula, extrapolated to
 two dimensions, we derive the formula for determining h as such:
     1. Calculate the mean center of input points (done a priori)
-    2. Calculate distance from mean center for all points
+    2. Calculate distance from (weighted) mean center for all points (here is where weighted value of the points are factored in)
     3. Calculate interquartile range of distances (IQR)
     4. Calculate Standard Distance (simply standard deviation of the distances) as SD
     
@@ -90,12 +60,15 @@ we will attempt to mitigate this possibility through accurate binning of the dat
 
 
 
-With one of the test clusters concerning concurrent crime data, the h bandwidth returned
-is intuitively accurate as well, holding a value of 0.00102324 for 14 clusters.
-This value coincides with the general area of three decimal places of a longitude/latitude
-measurement, where three places represents about the area of a large agricultural field or
-institutional campus.
+using ArcGIS's bandwidth variation on Silverman's Rule of Thumb,
+h = 0.0010232459928684096 for 14 clusters
+h = 0.0011021185631527905 for 15 clusters (slightly larger kernel)
 
+using standard variation of Silverman's Rule of Thumb,
+h = 0.0010232459928684096 for 14 clusters
+h = 0.0011021185631527905 for 15 clusters
+
+Seems identical, and runtimes are about the same for each.
 
 '''
 
@@ -134,30 +107,28 @@ def kernelbandwidth(cluster_group: np.array, cluster_center: np.array) -> tuple:
 
 
 
-# crime_df, crime_coords = full_crime_compile()
-
-# clusters_df, clusters, centers = fullcrime_kmeans(crime_df, crime_coords, n_clusters=14)
-
-# #first cluster group
-# cluster_group = np.array(list(clusters[0].geometry.apply(lambda x: (x.x, x.y))))
-
-
-# print(kernelbandwidth(cluster_group, centers[0]))
-
-
-
-# @jit(nopython=True)
-def kde_quartic(d,h):
-    #normalize distance(d) by dividing by radius length(h)
-    dn=d/h
+def quartic(d,h):
+    #for more concentrated peaks, steep falloff
+    u=d/h
     
-    #Gaussian
-    P = (3/math.pi)*(1-dn**2)**2
-    
-    #quartic
-    # P=(15/16)*(1-dn**2)**2
+    P=(15/16)*(1-u**2)**2
     return P
 
+def gaussian(d, h):
+    #for normal distribution
+    u = d/h
+    
+    k = 1/math.sqrt(2*math.pi)
+    P = k * math.exp(-(u**2)/2)
+    return P
+
+def epanechnikov(d, h):
+    #rounded out peaks, gradual falloff
+    u = d/h
+    
+    P = (3/4)*(1 - u**2)**2
+    return P
+    
 #PROCESSING
 # @jit(nopython=True)
 def generate_intensity(x, y, xc, yc):
@@ -170,34 +141,69 @@ def generate_intensity(x, y, xc, yc):
                 #CALCULATE DISTANCE
                 d=math.sqrt((xc[j][k]-x[i])**2+(yc[j][k]-y[i])**2) 
                 if d<=h:
-                    p=kde_quartic(d,h)
+                    p=gaussian(d,h)
                 else:
                     p=0
                 kde_value_list.append(p)
             #SUM ALL INTENSITY VALUE
-            coeff = 1/h**2
-            p_total=coeff * sum(kde_value_list)
+            p_total=sum(kde_value_list)
             intensity_row.append(p_total)
         intensity_list.append(intensity_row)
     return intensity_list
 
-# #HEATMAP OUTPUT
-# # for row in intensity_list:
-# #     print(row)
-# intensity_list = generate_intensity(x, y, xc, yc)
-# intensity=np.array(intensity_list)
-# print(intensity)
-# plt.pcolormesh(x_mesh,y_mesh,intensity)
-# plt.plot(x,y,'ro')
+
+
+
+crime_df, crime_coords = full_crime_compile()
+clusters_df, clusters, centers = fullcrime_kmeans(crime_df, crime_coords, n_clusters=15)
+
+#first cluster group
+firstcluster = np.array(list(clusters[1].geometry.apply(lambda x: (x.x, x.y))))
+print(firstcluster[10:50])
+h = kernelbandwidth(firstcluster, centers[1])
+
+x, y = np.split(firstcluster, 2, 1)
+
+
+#DEFINE GRID SIZE AND RADIUS(h)
+#grid_size 3rd decimal place for the area of a large field
+grid_size=0.005
+#h is our kernel radius to determine cluster influence
+
+
+#GETTING X,Y MIN AND MAX
+x_min=min(x)
+x_max=max(x)
+y_min=min(y)
+y_max=max(y)
+
+#CONSTRUCT GRID
+x_grid=np.arange(x_min-h,x_max+h,grid_size)
+y_grid=np.arange(y_min-h,y_max+h,grid_size)
+x_mesh,y_mesh=np.meshgrid(x_grid,y_grid)
+
+#GRID CENTER POINT
+
+xc=x_mesh+(grid_size/2)
+
+yc=y_mesh+(grid_size/2)
+
+
+#HEATMAP OUTPUT
+# for row in intensity_list:
+#     print(row)
+intensity_list = generate_intensity(x, y, xc, yc)
+intensity=np.array(intensity_list)
+print(intensity)
+plt.pcolormesh(x_mesh,y_mesh,intensity)
+# plt.scatter(x,y, s=0.5, alpha=0.5)
 # plt.colorbar()
-# plt.show()
-
-
+plt.show()
 
 
 
 '''
-following is for checking cluster center
+following is for checking cluster center accuracy
 '''
 # x, y = [], []
 # for arr in cluster_group:

@@ -35,21 +35,24 @@ two dimensions, we derive the formula for determining h as such:
        '''
 
 import matplotlib.pyplot as plt
+import mplleaflet
 # from kerneldensity import kernelbandwidth
 
 #POINT DATASET
-x=[16,16,16,15,15,28,15,18,25,15,18,25,30,25,22,30,22,38,40,38,30,22,20,35,33,35]
-y=[50,49,48,45,40,14,15,15,20,32,33,20,20,20,25,30,38,20,28,33,50,48,40,30,35,36]
+x=[-118.45, -118.42, -118.35]
+y=[33.98, 33.95, 33.94]
 xy = np.vstack((x, y)).T
 print(xy)
 centroid = np.array((sum(x) / len(x), sum(y) / len(y)))
 print(centroid)
 # h = kernelbandwidth(xy, centroid)
 # print(h)
-plt.plot(x,y,'ro')
-print(xy.shape)
-print(xy[0])
-print(xy[0,][0], ' \n', xy[0,][1])
+plt.scatter(x,y,s=50, alpha=0.5)
+# plt.show()
+mplleaflet.show(tiles='cartodb_positron')
+# print(xy.shape)
+# print(xy[0])
+# print(xy[0,][0], ' \n', xy[0,][1])
 
 
 

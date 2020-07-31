@@ -231,8 +231,22 @@ def full_crime_compile(silhouette: bool=False):
     from crime_list import misc_crime, violent_crime, property_crime, deviant_crime
     full_crime = []
     full_crime = misc_crime + violent_crime + property_crime + deviant_crime
+    crime_weights = {
+                '1.1': violent_crime,
+                '1.06': property_crime,
+                '1.09': deviant_crime,
+                '1.01': misc_crime
+                }
+    def weight_rows(row):
+        for k, v in crime_weights.items():
+            if row['crm_cd_des'] in v:
+                return k
+
     
     full_df = filter_crimes(crime_df, full_crime)
+    
+    col = full_df.apply(weight_rows, axis=1)
+    full_df = full_df.assign(weight=col.values)
     full_coords = np.array(list(full_df.geometry.apply(lambda x: (x.x, x.y))))
     
     if silhouette:
@@ -289,7 +303,7 @@ def fullcrime_kmeans(fullcrime_df: gpd.GeoDataFrame, fullcrime_coords: np.array,
     fullcrime_df : gpd.GeoDataFrame
         all crimes with descriptions, geometry points.
     fullcrime_coords : np.array
-        coordinates of crimes as numpy array.
+        coordinates of crimes as 2-D numpy array.
     n_clusters : int
         optimal number of clusters for KMeans, a prior with silhouette analysis.
 
@@ -303,6 +317,8 @@ def fullcrime_kmeans(fullcrime_df: gpd.GeoDataFrame, fullcrime_coords: np.array,
         center of each cluster.
 
     '''
+    crime_types = fullcrime_df.groupby('crm_cd_des')
+    
     
     clusterer = KMeans(n_clusters=n_clusters, random_state=10)
     clusterer.fit_predict(fullcrime_coords)
@@ -326,31 +342,8 @@ def fullcrime_kmeans(fullcrime_df: gpd.GeoDataFrame, fullcrime_coords: np.array,
 
 
 
-    
-'''
-#GPS precision for parcel of land determines grid_size
-grid_size = 0.001 (3rd decimal place for the area of a large agricultural field)
-
-h= 0.01 (2nd for influence of village to another)
-'''
-    
-    
-    
-    
-    
-    
-    
 
 
-
-
-
-
-    
-    
-    
-    
-        
 ''' 
 
 For full crime df combined, optimal n_clusters was 15
