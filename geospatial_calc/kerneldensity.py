@@ -89,6 +89,7 @@ def kernelbandwidth(cluster_group: np.array, cluster_center: np.array) -> tuple:
         optimal bandwidth for kernel density estimation
 
     '''
+    
     #tweak dimensions for cdist
     cluster_group_arr = np.vstack(cluster_group)
     center = np.array([cluster_center])

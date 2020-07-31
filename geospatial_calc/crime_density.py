@@ -245,9 +245,10 @@ def full_crime_compile(silhouette: bool=False):
     
     full_df = filter_crimes(crime_df, full_crime)
     
-    col = full_df.apply(weight_rows, axis=1)
-    full_df = full_df.assign(weight=col.values)
+    weights_col = full_df.apply(weight_rows, axis=1)
+    full_df = full_df.assign(weight=weights_col.values)
     full_coords = np.array(list(full_df.geometry.apply(lambda x: (x.x, x.y))))
+    
     
     if silhouette:
         silhouette_analysis(full_coords, n_clusters)
@@ -317,11 +318,10 @@ def fullcrime_kmeans(fullcrime_df: gpd.GeoDataFrame, fullcrime_coords: np.array,
         center of each cluster.
 
     '''
-    crime_types = fullcrime_df.groupby('crm_cd_des')
-    
+    weights = fullcrime_df['weight'].to_numpy()
     
     clusterer = KMeans(n_clusters=n_clusters, random_state=10)
-    clusterer.fit_predict(fullcrime_coords)
+    clusterer.fit_predict(X=fullcrime_coords, sample_weight=weights)
     
     centers = clusterer.cluster_centers_
     
