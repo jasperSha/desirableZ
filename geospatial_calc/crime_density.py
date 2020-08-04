@@ -213,6 +213,7 @@ def full_crime_compile(silhouette: bool=False):
     Graphs of silhouette analysis ratings
     or
     compiled crime data as dataframe, and numpy array of coordinates of each geometry point.
+    The full dataframe has the 'weight' column for crime severity.
     '''
     
     n_clusters = [13, 14]

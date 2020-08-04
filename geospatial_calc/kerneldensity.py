@@ -7,6 +7,7 @@ from numba import njit, jit
 from scipy.spatial import distance
 from crime_density import full_crime_compile, fullcrime_kmeans
 import time
+import os
 from crime_list import misc_crime, property_crime, violent_crime, deviant_crime
 
 #display entire numpy array
@@ -72,6 +73,7 @@ Seems identical, and runtimes are about the same for each.
 
 '''
 
+
 def kernelbandwidth(cluster_group: np.array, cluster_center: np.array) -> tuple:
     '''
     Parameters
@@ -102,9 +104,33 @@ def kernelbandwidth(cluster_group: np.array, cluster_center: np.array) -> tuple:
     q3 = np.percentile(cluster_group_arr, 75, interpolation='midpoint')
     IQR = q3 - q1
     
-    h = 0.9 * min(standard_distance, IQR/1.34) * N**-0.2
+    # h = 0.9 * min(standard_distance, IQR/1.34) * N**-0.2
+    
+    #R uses this formula for bandwidth
+    h = 4 * 1.06 * min(standard_distance, IQR/1.34) * N**-0.2
+    
     
     return h
+
+
+'''
+Two methods for kernel density estimation, varying on computational cost and accuracy.
+
+One method: create hexagonal bins over the data points, sum data within each hexagon
+then color code based off sum of each hexagon.
+    pros:
+        - computationally more efficient
+        - hexagons can then be output as polygons for later crime mapping of zillow
+          properties
+    cons:
+        - bin placement can drastically affect the density rating of the hexagons,
+          as they dont arise naturally from the data, but rather are fitted based on
+          prior parameters
+          
+Second method: 
+    
+
+'''
 
 
 
@@ -120,7 +146,7 @@ def gaussian(d, h):
     u = d/h
     
     k = 1/math.sqrt(2*math.pi)
-    P = k * math.exp(-(u**2)/2)
+    P = k * math.exp(-1/2*(u**2))
     return P
 
 def epanechnikov(d, h):
@@ -131,75 +157,81 @@ def epanechnikov(d, h):
     return P
     
 #PROCESSING
-# @jit(nopython=True)
-def generate_intensity(x, y, xc, yc):
-    intensity_list=[]
-    for j in range(len(xc)):
-        intensity_row=[]
-        for k in range(len(xc[0])):
-            kde_value_list=[]
-            for i in range(len(x)):
-                #CALCULATE DISTANCE
-                d=math.sqrt((xc[j][k]-x[i])**2+(yc[j][k]-y[i])**2) 
-                if d<=h:
-                    p=gaussian(d,h)
-                else:
-                    p=0
-                kde_value_list.append(p)
-            #SUM ALL INTENSITY VALUE
-            p_total=sum(kde_value_list)
-            intensity_row.append(p_total)
-        intensity_list.append(intensity_row)
-    return intensity_list
+# # @jit(nopython=True)
+# def generate_intensity(x, y, xc, yc):
+#     intensity_list=[]
+#     for j in range(len(xc)):
+#         intensity_row=[]
+#         for k in range(len(xc[0])):
+#             kde_value_list=[]
+#             for i in range(len(x)):
+#                 #CALCULATE DISTANCE
+#                 x_center = xc[j][k]
+#                 y_center = yc[j][k]
+#                 point = 
+#                 d=math.sqrt((xc[j][k]-x[i])**2+(yc[j][k]-y[i])**2) 
+#                 if d<=h:
+#                     p=gaussian(d,h)
+#                 else:
+#                     p=0
+#                 kde_value_list.append(p)
+#             #SUM ALL INTENSITY VALUE
+#             p_total=sum(kde_value_list)
+#             intensity_row.append(p_total)
+#         intensity_list.append(intensity_row)
+#     return intensity_list
 
 
 
 
 crime_df, crime_coords = full_crime_compile()
 clusters_df, clusters, centers = fullcrime_kmeans(crime_df, crime_coords, n_clusters=15)
-
-#first cluster group
-firstcluster = np.array(list(clusters[1].geometry.apply(lambda x: (x.x, x.y))))
-print(firstcluster[10:50])
-h = kernelbandwidth(firstcluster, centers[1])
-
-x, y = np.split(firstcluster, 2, 1)
+print(clusters_df.head())
 
 
-#DEFINE GRID SIZE AND RADIUS(h)
-#grid_size 3rd decimal place for the area of a large field
-grid_size=0.005
-#h is our kernel radius to determine cluster influence
+
+# #first cluster group
+# firstcluster = np.array(list(clusters[1].geometry.apply(lambda x: (x.x, x.y))))
+# print(firstcluster[10:50])
+# h = kernelbandwidth(firstcluster, centers[1])
+
+# x, y = np.split(firstcluster, 2, 1)
+
+# print('h bandwidth is: ', h)
+# #DEFINE GRID SIZE AND RADIUS(h)
+# #grid_size 3rd decimal place for the area of a large field
+# grid_size=0.005
+# #h is our kernel radius to determine cluster influence
 
 
-#GETTING X,Y MIN AND MAX
-x_min=min(x)
-x_max=max(x)
-y_min=min(y)
-y_max=max(y)
+# #GETTING X,Y MIN AND MAX
+# x_min=min(x)
+# x_max=max(x)
+# y_min=min(y)
+# y_max=max(y)
 
-#CONSTRUCT GRID
-x_grid=np.arange(x_min-h,x_max+h,grid_size)
-y_grid=np.arange(y_min-h,y_max+h,grid_size)
-x_mesh,y_mesh=np.meshgrid(x_grid,y_grid)
+# #CONSTRUCT GRID
+# x_grid=np.arange(x_min-h,x_max+h,grid_size)
+# y_grid=np.arange(y_min-h,y_max+h,grid_size)
+# x_mesh,y_mesh=np.meshgrid(x_grid,y_grid)
 
-#GRID CENTER POINT
+# #GRID CENTER POINT
 
-xc=x_mesh+(grid_size/2)
+# xc=x_mesh+(grid_size/2)
 
-yc=y_mesh+(grid_size/2)
+# yc=y_mesh+(grid_size/2)
 
-
-#HEATMAP OUTPUT
-# for row in intensity_list:
-#     print(row)
-intensity_list = generate_intensity(x, y, xc, yc)
-intensity=np.array(intensity_list)
-print(intensity)
-plt.pcolormesh(x_mesh,y_mesh,intensity)
 # plt.scatter(x,y, s=0.5, alpha=0.5)
-# plt.colorbar()
-plt.show()
+
+# #HEATMAP OUTPUT
+# # for row in intensity_list:
+# #     print(row)
+# intensity_list = generate_intensity(x, y, xc, yc)
+# intensity=np.array(intensity_list)
+# print(intensity)
+# plt.pcolormesh(x_mesh,y_mesh,intensity)
+# # plt.colorbar()
+# plt.show()
 
 
 

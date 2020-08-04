@@ -146,7 +146,7 @@ def signal_handling(signum, frame):
     global terminate
     terminate = True
 
-def fix_shp(prev_count):
+def fix_shp(prev_count, stop_limit):
     #set signal handler for stopping to write file
     signal.signal(signal.SIGINT, signal_handling)
     
@@ -163,33 +163,103 @@ def fix_shp(prev_count):
     addresses = list(zip(streets, citystate))
     new_awz = pd.DataFrame()
     for count, house in enumerate(addresses[prev_count:], start=prev_count):
+        if count - prev_count == 4500:
+            break
+        if count == stop_limit:
+            break
         if terminate:
             break
         zill = run_raw_address(house[1], house[0])
         new_awz = new_awz.append(zill, ignore_index=True)
     print(new_awz.head())
     os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
-    new_awz.to_csv('awzillow_%s_%s.csv'% (prev_count, count))
+    new_awz.to_csv('awz_%s_%s.csv'% (prev_count, count))
     return
         
 
 if __name__=='__main__': 
     
-    fix_shp(89359)
+    
+    #limit is 4500 (~13.5k calls)
     
     
     
+    os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
+    
+
     
     
+    awsz = pd.read_csv('awzillow_4227_6925.csv')
+    fixed_aws = awsz.head(502)
+    fixed_aws.to_csv('awz_4227_4729.csv')
+    
+
+    fix_shp(4729, 6925)
     
     
+    awsz = pd.read_csv('awzillow_9350_15915.csv')
+    fixed_aws = awsz.head(2687)
+    fixed_aws.to_csv('awz_9350_12037.csv')
+
+    fix_shp(12037, 15915)
+
+
+    awsz = pd.read_csv('awzillow_15915_26017.csv')
+    fixed_aws = awsz.head(4827)
+    fixed_aws.to_csv('awz_15915_20742.csv')
+
+    fix_shp(20742, 26017)
     
     
+    awsz = pd.read_csv('awzillow_27510_36244.csv')
+    fixed_aws = awsz.head(3437)
+    fixed_aws.to_csv('awz_27510_30947.csv')
+
+    fix_shp(30947, 36244)   
+    
+    awsz = pd.read_csv('awzillow_36244_48355.csv')
+    fixed_aws = awsz.head(4792)
+    fixed_aws.to_csv('awz_36244_41036.csv')
+    
+    fix_shp(41036, 48355)   
     
     
+    awsz = pd.read_csv('awzillow_48355_57422.csv')
+    fixed_aws = awsz.head(4773)
+    fixed_aws.to_csv('awz_48355_53128.csv')
+    
+    fix_shp(53128, 57422)   
+    
+    awsz = pd.read_csv('awzillow_61325_69800.csv')
+    fixed_aws = awsz.head(4755)
+    fixed_aws.to_csv('awz_61325_66080.csv')
+    
+    fix_shp(66080, 69800)   
     
     
+    awsz = pd.read_csv('awzillow_69800_80765.csv')
+    fixed_aws = awsz.head(4831)
+    fixed_aws.to_csv('awz_69800_74631.csv')
     
     
+    fix_shp(74631, 80765)   
     
+    
+    awsz = pd.read_csv('awzillow_89359_98207.csv')
+    fixed_aws = awsz.head(4842)
+    fixed_aws.to_csv('awz_89359_94201.csv')
+    
+    fix_shp(94201, 98207)   
+    
+    awsz = pd.read_csv('awzillow_98207_107113.csv')
+    fixed_aws = awsz.head(5037)
+    fixed_aws.to_csv('awz_98207_103244.csv')
+    
+    fix_shp(103244, 107113)  
+
+    awsz = pd.read_csv('awzillow_107113_119279.csv')
+    fixed_aws = awsz.head(5022)
+    fixed_aws.to_csv('awz_107113_112135.csv')
+    
+    fix_shp(112135, 119279)   
     

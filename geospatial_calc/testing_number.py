@@ -1,58 +1,93 @@
 from numba import cuda
 from numba import jit
 import numpy as np
+from scipy.spatial import distance
+from sklearn.metrics.pairwise import haversine_distances
+from math import radians
+import pandas as pd
+import geopandas as gpd
+import os
+from shapely.wkt import loads
 
 
-
-# x=[16,16,16,15,15,28,15,18,25,15,18,25,30,25,22,30,22,38,40,38,30,22,20,35,33,35]
-# y=[50,49,48,45,40,14,15,15,20,32,33,20,20,20,25,30,38,20,28,33,50,48,40,30,35,36]
-
-
-# matrix = list(zip(x, y))
-
-# a = np.asarray(matrix, dtype='int64')
-
-
-# print(a)
-# @jit(nopython=True) # Set "nopython" mode for best performance, equivalent to @njit
-# def go_fast(a): # Function is compiled to machine code when called the first time
-#     trace = 0.0
-#     for i in range(a.shape[0]):   # Numba likes loops
-#         trace += np.tanh(a[i, i]) # Numba likes NumPy functions
-#     return a + trace              # Numba likes NumPy broadcasting
-
-# print(go_fast(a))
-'''
-Using Silverman's Rule of Thumb bandwidth estimation formula, extrapolated to
-two dimensions, we derive the formula for determining h as such:
-    1. Calculate the mean center of input points
-    2. Calculate distance from mean center for all points
-    3. Calculate median of all the distances (Dm)
-    4. Calculate Standard Distance (simply standard deviation of the distances) as SD
     
-    5. Finally, h = 0.9 * min(SD, sqrt(1/ln(2))*Dm) * n**-0.2,
-       where Dm is the median distance.
-       '''
+def haversine(data):
+    lat = data[:,0]
+    lng = data[:,1]
+    
+    newlatdim = lat[:, None]
+    diff_lat = newlatdim - lat
+    diff_lng = lng[:, None] - lng
+    
+    
+    #haversine
+    d = np.sin(diff_lat/2)**2 + np.cos(lat[:,None])*np.cos(lat) * np.sin(diff_lng/2)**2
+    dist = 2 * earthradius * np.arcsin(np.sqrt(d))
+    print(dist)
+    
 
-import matplotlib.pyplot as plt
-import mplleaflet
-# from kerneldensity import kernelbandwidth
 
-#POINT DATASET
-x=[-118.45, -118.42, -118.35]
-y=[33.98, 33.95, 33.94]
-xy = np.vstack((x, y)).T
-print(xy)
-centroid = np.array((sum(x) / len(x), sum(y) / len(y)))
-print(centroid)
-# h = kernelbandwidth(xy, centroid)
-# print(h)
-plt.scatter(x,y,s=50, alpha=0.5)
-# plt.show()
-mplleaflet.show(tiles='cartodb_positron')
-# print(xy.shape)
-# print(xy[0])
-# print(xy[0,][0], ' \n', xy[0,][1])
 
+os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/testdatadensity')
+test_data = pd.read_csv('test_data.csv')
+test_data['geometry'] = test_data['geometry'].apply(loads)
+data = gpd.GeoDataFrame(test_data, geometry=test_data['geometry'])
+data.crs = {'init':'epsg:4326'}
+
+coords = np.array(list(data.geometry.apply(lambda x: (x.x, x.y))))
+
+
+earthradius = 6371 #kilometers
+gridsize = 0.1 #kilometers
+radius = 1.1 #step count -> 1km across
+
+def kmToLat(km):
+    #assuming close to equator
+    return km/111.2
+def kmtoLng(km, lat):
+    lati = np.radian(lat)
+    dist_radian = km/111.320 * np.cos(lati) #conversion depends on latitude due to convergence/divergence from pole to pole
+    return 
+
+
+def calc_density(lati, loni, gridsize, radius, count, sumDate):
+    #lati/loni are the lat/lng of the individual event
+    _range = radius * gridsize
+    lat_vec = np.linspace(lati - _range, lati + _range, gridsize)
+    return lat_vec
+
+
+#converting input numbers from kilometers to lat/lng degrees for greater accuracy
+gridsize = round(kmToLat(gridsize), 3)
+
+#specify input radius as kilometers
+rad_km = radius
+
+#convert radius km to radius in degrees
+rad_degree = kmToLat(rad_km)
+
+#whole number steps in grid to divide radius(in degrees) by gridsize(in degrees)
+rad_steps = round(rad_degree/gridsize)
+
+#radius in km
+rad_km = rad_steps * gridsize * 111.2
+radius = rad_steps
+
+print(gridsize, rad_steps, rad_km, radius)
+
+
+lng = coords[:,0]
+lat = coords[:,1]
+
+#round lat/lng to nearest gridpoints
+lng = lng * (1/gridsize)
+lng = np.round(lng, 0)
+lng *= gridsize
+print(lng)
+
+lat = lat * (1/gridsize)
+lat = np.round(lat, 0)
+lat *= gridsize
+print(lat)
 
 

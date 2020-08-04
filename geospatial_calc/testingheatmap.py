@@ -4,8 +4,10 @@ import math
 from random import random
 from random import seed
 from numba import cuda
+from scipy.spatial import distance
+ 
 
-FUNCTION TO CALCULATE INTENSITY WITH QUARTIC KERNEL
+# FUNCTION TO CALCULATE INTENSITY WITH QUARTIC KERNEL
 def kde_quartic(d,h):
     dn=d/h
     P=(15/16)*(1-dn**2)**2
@@ -46,11 +48,14 @@ intensity_list=[]
 #j will iterate along the count of y-coordinates
 for j in range(len(xc)):
     intensity_row=[]
-    #k along the count of x-coords
+    #k along the count of x-coords (only x[0] because its a square mesh, same number all the way down)
     for k in range(len(xc[0])):
         kde_value_list=[]
         for i in range(len(x)):
             #CALCULATE DISTANCE
+            x_coord_mesh_center = xc[j][k]
+            y_coord_mesh_center = yc[j][k]
+            
             d=math.sqrt((xc[j][k]-x[i])**2+(yc[j][k]-y[i])**2) 
             if d<=h:
                 p=kde_quartic(d,h)
