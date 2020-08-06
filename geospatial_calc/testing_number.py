@@ -8,22 +8,8 @@ import pandas as pd
 import geopandas as gpd
 import os
 from shapely.wkt import loads
-
-
-    
-def haversine(data):
-    lat = data[:,0]
-    lng = data[:,1]
-    
-    newlatdim = lat[:, None]
-    diff_lat = newlatdim - lat
-    diff_lng = lng[:, None] - lng
-    
-    
-    #haversine
-    d = np.sin(diff_lat/2)**2 + np.cos(lat[:,None])*np.cos(lat) * np.sin(diff_lng/2)**2
-    dist = 2 * earthradius * np.arcsin(np.sqrt(d))
-    print(dist)
+import matplotlib.pyplot as plt
+import math
     
 
 
@@ -38,23 +24,15 @@ coords = np.array(list(data.geometry.apply(lambda x: (x.x, x.y))))
 
 
 earthradius = 6371 #kilometers
-gridsize = 0.1 #kilometers
-radius = 1.1 #step count -> 1km across
+gridsize = 0.2 #kilometers
+
+#radius will be derived from the kernel bandwidth
+radius = 1.742 # 1.1km across
+
 
 def kmToLat(km):
     #assuming close to equator
     return km/111.2
-def kmtoLng(km, lat):
-    lati = np.radian(lat)
-    dist_radian = km/111.320 * np.cos(lati) #conversion depends on latitude due to convergence/divergence from pole to pole
-    return 
-
-
-def calc_density(lati, loni, gridsize, radius, count, sumDate):
-    #lati/loni are the lat/lng of the individual event
-    _range = radius * gridsize
-    lat_vec = np.linspace(lati - _range, lati + _range, gridsize)
-    return lat_vec
 
 
 #converting input numbers from kilometers to lat/lng degrees for greater accuracy
@@ -66,28 +44,81 @@ rad_km = radius
 #convert radius km to radius in degrees
 rad_degree = kmToLat(rad_km)
 
-#whole number steps in grid to divide radius(in degrees) by gridsize(in degrees)
+#number of grid steps
 rad_steps = round(rad_degree/gridsize)
 
-#radius in km
-rad_km = rad_steps * gridsize * 111.2
-radius = rad_steps
+# #radius in km rounded off to nearest gridstep
+# rad_km = rad_steps * gridsize * 111.2
 
-print(gridsize, rad_steps, rad_km, radius)
+#radius used for spherical pythagorean calc
+radius = rad_steps * gridsize
 
 
+#split lng/lat into separate vectors
 lng = coords[:,0]
 lat = coords[:,1]
 
-#round lat/lng to nearest gridpoints
-lng = lng * (1/gridsize)
+#snap lat/lng event coords to adhere to gridsize then broadcast --> creates mesh only where the points exist
+lng = lng / gridsize
 lng = np.round(lng, 0)
 lng *= gridsize
-print(lng)
+lng = lng[:,None]
+
 
 lat = lat * (1/gridsize)
 lat = np.round(lat, 0)
 lat *= gridsize
-print(lat)
+lat = lat[:,None]
+
+
+
+#define an event center (index still in order)
+latc = lat[10]
+lonc = lng[10]
+
+
+'''
+TODO: USE LINSPACE INSTEAD OF ARANGE TO ACCOUNT FOR FLOATING POINT FALLOFF
+'''
+
+
+#generate square mesh with 
+lat_vec = np.arange(latc - radius, latc + radius, gridsize)
+# print(lat_vec.shape)
+
+lon_vec = np.arange(lonc - radius, lonc + radius, gridsize)
+# print(lon_vec.shape)
+
+print(latc + radius)
+print(latc - radius)
+print(gridsize)
+
+print(lonc + radius)
+print(lonc - radius)
+print(gridsize)
+
+
+#derive spherical pythagoras to find the tolerance vector magnitude
+phi = np.cos(radius)
+sigma = np.cos(lat_vec - latc)
+lat_vec_t = np.arccos(phi/sigma)
+
+#generate more normally distributed range outwards from lat/lon event center
+lat_vec_t /= np.cos(np.radians(lat_vec))
+
+lat_before_round = lat_vec_t
+#snap tolerance vectors to meshgrid
+lat_vec_t = np.round(lat_vec_t/gridsize, 0) * gridsize
+
+#generate matrix with all lon coords in meshgrid
+square = len(lon_vec)
+lon_matrix = np.vstack([lon_vec]*square)
+
+#subtract event center point to recenter on zero
+diff_lon_matrix = abs(lon_matrix - lonc)
+
+
+#using latitude tolerance vectors, zero out points not in neighborhood
+# temp = lat_vec_t - diff_lon_matrix
 
 

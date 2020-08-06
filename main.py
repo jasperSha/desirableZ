@@ -189,77 +189,92 @@ if __name__=='__main__':
 
     
     
-    awsz = pd.read_csv('awzillow_4227_6925.csv')
-    fixed_aws = awsz.head(502)
-    fixed_aws.to_csv('awz_4227_4729.csv')
+    # awsz = pd.read_csv('awzillow_4227_6925.csv')
+    # fixed_aws = awsz.head(502)
+    # fixed_aws.to_csv('awz_4227_4729.csv')
     
 
-    fix_shp(4729, 6925)
+    # fix_shp(4729, 6925)
     
     
-    awsz = pd.read_csv('awzillow_9350_15915.csv')
-    fixed_aws = awsz.head(2687)
-    fixed_aws.to_csv('awz_9350_12037.csv')
+    # awsz = pd.read_csv('awzillow_9350_15915.csv')
+    # fixed_aws = awsz.head(2687)
+    # fixed_aws.to_csv('awz_9350_12037.csv')
 
-    fix_shp(12037, 15915)
+    # fix_shp(12037, 15915)
+    
+    # awsz = pd.read_csv('awz_12037_15915.csv')
+    # fixed_aws = awsz.head(3026)
+    # fixed_aws.to_csv('awz_12037_15063.csv')
 
 
-    awsz = pd.read_csv('awzillow_15915_26017.csv')
-    fixed_aws = awsz.head(4827)
-    fixed_aws.to_csv('awz_15915_20742.csv')
 
-    fix_shp(20742, 26017)
-    
-    
-    awsz = pd.read_csv('awzillow_27510_36244.csv')
-    fixed_aws = awsz.head(3437)
-    fixed_aws.to_csv('awz_27510_30947.csv')
+    # fix_shp(15063, 15915) #852
 
-    fix_shp(30947, 36244)   
+    # awsz = pd.read_csv('awzillow_15915_26017.csv')
+    # fixed_aws = awsz.head(4827)
+    # fixed_aws.to_csv('awz_15915_20742.csv')
     
-    awsz = pd.read_csv('awzillow_36244_48355.csv')
-    fixed_aws = awsz.head(4792)
-    fixed_aws.to_csv('awz_36244_41036.csv')
-    
-    fix_shp(41036, 48355)   
+    # fix_shp(20742, 24390)
     
     
-    awsz = pd.read_csv('awzillow_48355_57422.csv')
-    fixed_aws = awsz.head(4773)
-    fixed_aws.to_csv('awz_48355_53128.csv')
-    
-    fix_shp(53128, 57422)   
-    
-    awsz = pd.read_csv('awzillow_61325_69800.csv')
-    fixed_aws = awsz.head(4755)
-    fixed_aws.to_csv('awz_61325_66080.csv')
-    
-    fix_shp(66080, 69800)   
     
     
-    awsz = pd.read_csv('awzillow_69800_80765.csv')
-    fixed_aws = awsz.head(4831)
-    fixed_aws.to_csv('awz_69800_74631.csv')
+    fix_shp(24390, 26017) #1627
     
     
-    fix_shp(74631, 80765)   
+    # awsz = pd.read_csv('awzillow_27510_36244.csv')
+    # fixed_aws = awsz.head(3437)
+    # fixed_aws.to_csv('awz_27510_30947.csv')
+    
+    fix_shp(30947, 33820) #+4500
     
     
-    awsz = pd.read_csv('awzillow_89359_98207.csv')
-    fixed_aws = awsz.head(4842)
-    fixed_aws.to_csv('awz_89359_94201.csv')
+    # fix_shp(33820, 36244) #2424
     
-    fix_shp(94201, 98207)   
+    # awsz = pd.read_csv('awzillow_36244_48355.csv')
+    # fixed_aws = awsz.head(4792)
+    # fixed_aws.to_csv('awz_36244_41036.csv')
     
-    awsz = pd.read_csv('awzillow_98207_107113.csv')
-    fixed_aws = awsz.head(5037)
-    fixed_aws.to_csv('awz_98207_103244.csv')
+    # fix_shp(41036, 48355)   #7319
     
-    fix_shp(103244, 107113)  
+    
+    # awsz = pd.read_csv('awzillow_48355_57422.csv')
+    # fixed_aws = awsz.head(4773)
+    # fixed_aws.to_csv('awz_48355_53128.csv')
+    
+    # fix_shp(53128, 57422)   #4294
+    
+    # awsz = pd.read_csv('awzillow_61325_69800.csv')
+    # fixed_aws = awsz.head(4755)
+    # fixed_aws.to_csv('awz_61325_66080.csv')
+    
+    # fix_shp(66080, 69800)   #3720
+    
+    
+    # awsz = pd.read_csv('awzillow_69800_80765.csv')
+    # fixed_aws = awsz.head(4831)
+    # fixed_aws.to_csv('awz_69800_74631.csv')
+    
+    
+    # fix_shp(74631, 80765)   #6134
+    
+    
+    # awsz = pd.read_csv('awzillow_89359_98207.csv')
+    # fixed_aws = awsz.head(4842)
+    # fixed_aws.to_csv('awz_89359_94201.csv')
+    
+    # fix_shp(94201, 98207)   #4006
+    
+    # awsz = pd.read_csv('awzillow_98207_107113.csv')
+    # fixed_aws = awsz.head(5037)
+    # fixed_aws.to_csv('awz_98207_103244.csv')
+    
+    # fix_shp(103244, 107113)  #3869
 
-    awsz = pd.read_csv('awzillow_107113_119279.csv')
-    fixed_aws = awsz.head(5022)
-    fixed_aws.to_csv('awz_107113_112135.csv')
+    # awsz = pd.read_csv('awzillow_107113_119279.csv')
+    # fixed_aws = awsz.head(5022)
+    # fixed_aws.to_csv('awz_107113_112135.csv')
     
-    fix_shp(112135, 119279)   
+    # fix_shp(112135, 119279)   #7144
     

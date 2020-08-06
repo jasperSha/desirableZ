@@ -73,6 +73,43 @@ Seems identical, and runtimes are about the same for each.
 
 '''
 
+def haversine_center(cluster_points: np.array, center: np.array):
+    '''
+    Parameters
+    --------
+    cluster_points 2d array
+    
+    center 2d array (one element)
+    
+    Returns
+    radian_distance: 
+        np.array with each haversine distance in radians between each cluster 
+        point and the center point
+    '''
+    
+    cluster_points, center = np.radians(cluster_points), np.radians(center)
+    
+    #extend center array to match row-wise all cluster_points
+    center = np.tile(center, (len(cluster_points), 1))
+    
+    lat1, lon1 = cluster_points[:,1], cluster_points[:,0]
+    lat2, lon2 = center[:,1], center[:,0]
+    
+    #broadcast
+    lat1, lon1 = lat1[:,None], lon1[:,None]
+    lat2, lon2 = lat2[:,None], lon2[:,None]
+    
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    a = np.sin(dlat/2.0)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2.0)**2
+
+    c = 2 * np.arcsin(np.sqrt(a))
+    
+    radian_distance = c * 180/math.pi
+    return radian_distance
+    
+
 
 def kernelbandwidth(cluster_group: np.array, cluster_center: np.array) -> tuple:
     '''
@@ -87,8 +124,8 @@ def kernelbandwidth(cluster_group: np.array, cluster_center: np.array) -> tuple:
     
     Returns
     -------
-    h : float
-        optimal bandwidth for kernel density estimation
+    h : measurement in kilometers
+        optimal bandwidth for kernel density estimation (or point density radius)
 
     '''
     
@@ -96,7 +133,8 @@ def kernelbandwidth(cluster_group: np.array, cluster_center: np.array) -> tuple:
     cluster_group_arr = np.vstack(cluster_group)
     center = np.array([cluster_center])
     
-    dist_array = distance.cdist(center, cluster_group_arr, 'euclidean')
+    
+    dist_array = haversine_center(cluster_group_arr, center)
     standard_distance = np.std(dist_array)
     N = cluster_group_arr.size
     
@@ -181,19 +219,26 @@ def epanechnikov(d, h):
 #         intensity_list.append(intensity_row)
 #     return intensity_list
 
-
+def centroidnp(arr):
+    length = arr.shape[0]
+    sum_x = np.sum(arr[:, 0])
+    sum_y = np.sum(arr[:, 1])
+    return np.array([sum_x/length, sum_y/length])
 
 
 crime_df, crime_coords = full_crime_compile()
 clusters_df, clusters, centers = fullcrime_kmeans(crime_df, crime_coords, n_clusters=15)
-print(clusters_df.head())
+# print(clusters_df.head())
+
+centroid = centroidnp(crime_coords)
+
+h = kernelbandwidth(crime_coords, centroid)
+
+print(h)
 
 
 
-# #first cluster group
-# firstcluster = np.array(list(clusters[1].geometry.apply(lambda x: (x.x, x.y))))
-# print(firstcluster[10:50])
-# h = kernelbandwidth(firstcluster, centers[1])
+
 
 # x, y = np.split(firstcluster, 2, 1)
 
