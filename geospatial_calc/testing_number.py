@@ -21,6 +21,8 @@ test_data['geometry'] = test_data['geometry'].apply(loads)
 data = gpd.GeoDataFrame(test_data, geometry=test_data['geometry'])
 data.crs = {'init':'epsg:4326'}
 
+data.to_file('test_data.gpkg', driver='GPKG')
+
 coords = np.array(list(data.geometry.apply(lambda x: (x.x, x.y))))
 
 
@@ -34,6 +36,15 @@ radius = 1.742 # 1.1km across
 def kmToLat(km):
     #assuming close to equator
     return km/111.2
+
+def date_diff(eventDate):
+    if eventDate is None:
+        return None
+    today = datetime.date.today()
+    date_obj = datetime.datetime.strptime(eventDate, '%Y-%m-%d').date()
+    diff = today - date_obj
+    return diff.days
+
 
 
 #converting input numbers from kilometers to lat/lng degrees for greater accuracy
@@ -55,6 +66,8 @@ rad_steps = round(rad_degree/gridsize)
 radius = rad_steps * gridsize
 
 
+
+
 #split lng/lat into separate vectors
 lng = coords[:,0]
 lat = coords[:,1]
@@ -72,9 +85,20 @@ lat = np.round(lat, 0)
 lat *= gridsize
 lat = lat[:,None]
 
+#generate date count for temporal trend analysis
+data['dayCount'] = 0
+data['dayCount'] = data['date_occ'].apply(date_diff)
 
 
-#define an event center (index still in order)
+
+
+'''
+prior to here, all calculations are universal
+'''
+
+
+
+#define an event center (index still in order) here is where the iteration begins
 latc = lat[10]
 lonc = lng[10]
 
@@ -103,10 +127,10 @@ lat_vec_t = np.round(lat_vec_t/gridsize, 0) * gridsize
 square = len(lon_vec)
 lon_matrix = np.vstack([np.transpose(lon_vec)]*square)
 
-#subtract event center point to recenter on zero to compare to lat_vec_t magnitudes
+#subtract event center point to recenter on zero to compare to latitude tolerance vector magnitudes
 lon_matrix_t = abs(lon_matrix - lonc)
 
-#using latitude tolerance vectors, zero out points not in neighborhood
+#zero out points not within tolerance vector magnitude
 temp = lat_vec_t - lon_matrix_t
 temp[temp < (gridsize - (1e-6))] = 0
 temp[temp > 0] = 1
@@ -124,15 +148,42 @@ lat_lon_matrix = np.array((lat_matrix, lon_matrix_trunc)).T
 
 #remove all elements where lon was zeroed out
 mask = lat_lon_matrix[:,:,1]
-lat_lon_matrix = lat_lon_matrix[mask != 0]
+local_event_mesh = lat_lon_matrix[mask != 0]
+
+
+#assign weights/dates to each point on the return meshgrid
+weight, sumDate = np.tile(crime_center['weight'], (len(local_event_mesh),1)), np.tile(crime_center['dayCount'], (len(local_event_mesh),1))
+
+
+return_mesh = np.column_stack((local_event_mesh,weight,sumDate))
 
 
 
 
-def date_diff(sumDate):
-    today = datetime.date.today()
-    sumDate = crime_center['date_occ']
-    date_obj = datetime.datetime.strptime(sumDate, '%Y-%m-%d').date()
-    diff = today - date_obj
-    return diff.days
+
+# x = local_event_mesh[:,1]
+# y = local_event_mesh[:,0]
+
+# og_x = coords[:,0]
+# og_y = coords[:,1]
+
+# plt.scatter(x, y)
+# plt.show()
+# # plt.scatter(og_x,og_y)
+# # plt.show()
+
+# lon_max, lon_min = max(og_x), min(og_x) 
+# lat_max, lat_min = max(og_y), min(og_y)
+
+
+
+
+
+
+
+
+
+
+
+
 
