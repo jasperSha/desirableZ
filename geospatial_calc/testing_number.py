@@ -13,17 +13,6 @@ import math
 import datetime
     
 
-
-
-os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/testdatadensity')
-test_data = pd.read_csv('test_data.csv')
-test_data['geometry'] = test_data['geometry'].apply(loads)
-
-data = gpd.GeoDataFrame(test_data, geometry=test_data['geometry'])
-data.crs = {'init':'epsg:4326'}
-coords = np.array(list(data.geometry.apply(lambda x: (x.x, x.y))))
-
-
 def kmToLat(km):
     #assuming close to equator
     return km/111.2
@@ -36,6 +25,18 @@ def date_diff(eventDate):
     diff = today - date_obj
     return diff.days
 
+
+
+
+os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/testdatadensity')
+data = pd.read_csv('test_data.csv')
+data['geometry'] = data['geometry'].apply(loads)
+
+data = gpd.GeoDataFrame(data, geometry=data['geometry'])
+data.crs = {'init':'epsg:4326'}
+coords = np.array(list(data.geometry.apply(lambda x: (x.x, x.y))))
+
+
 #generate date count for temporal trend analysis
 data['dayCount'] = 0
 data['dayCount'] = data['date_occ'].apply(date_diff)
@@ -43,7 +44,7 @@ data['dayCount'] = data['date_occ'].apply(date_diff)
 gridsize = 0.2 #kilometers
 
 #radius will be derived from the kernel bandwidth
-radius = 1.742 # 1.1km across
+radius = 1.742 # 1.742km across
 
 
 #converting input numbers from kilometers to lat/lng degrees for greater accuracy
@@ -65,7 +66,6 @@ radius = rad_steps * gridsize
 lng = coords[:,0]
 lat = coords[:,1]
 
-
 #snap lat/lng event coords to adhere to gridsize then broadcast --> creates mesh only where the points exist
 lng = lng / gridsize
 lng = np.round(lng, 0)
@@ -79,31 +79,25 @@ lat *= gridsize
 
 lat = lat[:,None]
 
+snapped_latlng = np.concatenate((lng, lat), axis=1)
 
-'''
-after snapping grids, rezip lat/lng into a 2d array;
-then use np.add.reduceat in order to sum the days and count, grouped by the first instance of each 
-new lat/long center(ie, use max(iterator))
-then each row of the grouped, zipped np array will pass into generate_event_mesh
-'''
+weight = data['weight']
+dayCount = data['dayCount']
 
+snapped_latlng = np.column_stack((snapped_latlng, weight, dayCount))
+df = pd.DataFrame(snapped_latlng, columns=['lng', 'lat', 'weight', 'dayCount'])
+df = df.sort_values(['lng', 'lat'], ascending=True).reset_index(drop=True)
+df = df.groupby(['lng', 'lat']).agg(weight=('weight', 'mean'),sumDate=('dayCount', 'sum'),count=('lng', 'count')).reset_index()
 
+inventory_array = df.to_numpy()
 
 '''
 prior to here, all calculations are universal
 '''
-inventory = np.zeros((1e+6,4))
+# # inventory = np.zeros((1e6,4))
 
-def generate_event_mesh(latc, lonc, dayCount, sumDate):
-    
-    #define an event center (index still in order) here is where the iteration begins
-    latc = lat[10]
-    lonc = lng[10]
-    
-    
-    crime_center = data.iloc[10]
-    
-    
+def generate_event_mesh(lonc, latc, weight, sumDate, count):
+            
     #generate square mesh with linspace, using range of 2n + 1
     lat_vec = np.linspace(latc - radius, latc + radius, rad_steps * 2 + 1)
     
@@ -149,14 +143,32 @@ def generate_event_mesh(latc, lonc, dayCount, sumDate):
     
     
     #assign weights/dates to each point on the return meshgrid
-    weight, sumDate = np.tile(crime_center['weight'], (len(local_event_mesh),1)), np.tile(crime_center['dayCount'], (len(local_event_mesh),1))
+    
+    weight, sumDate, count = np.tile(weight, (len(local_event_mesh),1)), np.tile(sumDate, (len(local_event_mesh),1)), np.tile(count, (len(local_event_mesh),1))
     
     
-    return_mesh = np.column_stack((local_event_mesh,weight,sumDate))
-    
+    return_mesh = np.column_stack((local_event_mesh,weight,sumDate, count))
     return return_mesh
 
+def agg_func(x):
+    d = {}
+    count = x['count'].sum()
+    daycount = x['sumDate'].sum()
+    weight = x['weight'].mean()
+    d['date_avg'] = daycount / count
+    d['density'] = weight * count
+    return pd.Series(d)
 
+#generate full gridmesh
+full_grid = np.concatenate([generate_event_mesh(lonc=event[0], latc=event[1], weight=event[2], sumDate=event[3], count=event[4]) for event in inventory_array])
+df = pd.DataFrame(full_grid, columns=['lat', 'lng', 'weight', 'sumDate', 'count'])
+
+#handle floating point error
+df['lat'] = df['lat'].round(3).apply(str)
+df['lng'] = df['lng'].round(3).apply(str)
+
+#aggregate all weights/counts for density, and date average
+df = df.groupby(['lng', 'lat']).apply(agg_func)
 
 
 # x = local_event_mesh[:,1]

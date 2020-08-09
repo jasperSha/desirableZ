@@ -243,15 +243,23 @@ if __name__=='__main__':
     # fix_shp(43039, 43112)
     
     
+    # fix_shp(43113, 47613) #4500
     
     
     
-    fix_shp(43113, 48355) #5223
+    
+    
+    
     # awsz = pd.read_csv('awzillow_48355_57422.csv')
     # fixed_aws = awsz.head(4773)
     # fixed_aws.to_csv('awz_48355_53128.csv')
     
-    # fix_shp(53128, 57422)   #4294
+    
+    
+    
+    fix_shp(47614, 48355) #741
+
+    fix_shp(53128, 57422)   #4294
     
     # awsz = pd.read_csv('awzillow_61325_69800.csv')
     # fixed_aws = awsz.head(4755)
