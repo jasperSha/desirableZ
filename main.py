@@ -257,40 +257,58 @@ if __name__=='__main__':
     
     
     
-    fix_shp(47614, 48355) #741
 
-    fix_shp(53128, 57422)   #4294
+    # fix_shp(47635, 48355)
+    # fix_shp(53128, 56908)
+    
+    
+    
+    
+    
+    
+    
+    
     
     # awsz = pd.read_csv('awzillow_61325_69800.csv')
     # fixed_aws = awsz.head(4755)
     # fixed_aws.to_csv('awz_61325_66080.csv')
     
-    # fix_shp(66080, 69800)   #3720
+    fix_shp(56909, 57422)   #514
+    fix_shp(66080, 69800)   #3720
     
     
     # awsz = pd.read_csv('awzillow_69800_80765.csv')
     # fixed_aws = awsz.head(4831)
     # fixed_aws.to_csv('awz_69800_74631.csv')
     
+    # fix_shp(74631, 79131) #4500
     
-    # fix_shp(74631, 80765)   #6134
     
+    
+    
+    # fix_shp(79131, 80765)   #1634
+    #fix_shp(94201, 97067) #+4500
+
     
     # awsz = pd.read_csv('awzillow_89359_98207.csv')
     # fixed_aws = awsz.head(4842)
     # fixed_aws.to_csv('awz_89359_94201.csv')
     
-    # fix_shp(94201, 98207)   #4006
+    
+    # fix_shp(97067, 98207)   #1140
+    # fix_shp(103244, 106604) #+4500
     
     # awsz = pd.read_csv('awzillow_98207_107113.csv')
     # fixed_aws = awsz.head(5037)
     # fixed_aws.to_csv('awz_98207_103244.csv')
     
-    # fix_shp(103244, 107113)  #3869
-
+    
+    # fix_shp(106604, 107113)  #509
+    # fix_shp(112135, 116135) #+4500
+    
     # awsz = pd.read_csv('awzillow_107113_119279.csv')
     # fixed_aws = awsz.head(5022)
     # fixed_aws.to_csv('awz_107113_112135.csv')
     
-    # fix_shp(112135, 119279)   #7144
+    # fix_shp(116135, 119279)   #3144
     
