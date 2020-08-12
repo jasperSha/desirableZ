@@ -1,11 +1,10 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import math
 import numpy as np
 import sys
 from numba import njit, jit
 from scipy.spatial import distance
-from crime_density import full_crime_compile, fullcrime_kmeans
+from silhouette import full_crime_compile, fullcrime_kmeans
 import time
 import os
 from crime_list import misc_crime, property_crime, violent_crime, deviant_crime
@@ -124,7 +123,7 @@ def kernelbandwidth(cluster_group: np.array, cluster_center: np.array) -> tuple:
     
     Returns
     -------
-    h : measurement in kilometers
+    h : measurement in DEGREES
         optimal bandwidth for kernel density estimation (or point density radius)
 
     '''
@@ -194,107 +193,12 @@ def epanechnikov(d, h):
     P = (3/4)*(1 - u**2)**2
     return P
     
-#PROCESSING
-# # @jit(nopython=True)
-# def generate_intensity(x, y, xc, yc):
-#     intensity_list=[]
-#     for j in range(len(xc)):
-#         intensity_row=[]
-#         for k in range(len(xc[0])):
-#             kde_value_list=[]
-#             for i in range(len(x)):
-#                 #CALCULATE DISTANCE
-#                 x_center = xc[j][k]
-#                 y_center = yc[j][k]
-#                 point = 
-#                 d=math.sqrt((xc[j][k]-x[i])**2+(yc[j][k]-y[i])**2) 
-#                 if d<=h:
-#                     p=gaussian(d,h)
-#                 else:
-#                     p=0
-#                 kde_value_list.append(p)
-#             #SUM ALL INTENSITY VALUE
-#             p_total=sum(kde_value_list)
-#             intensity_row.append(p_total)
-#         intensity_list.append(intensity_row)
-#     return intensity_list
 
 def centroidnp(arr):
     length = arr.shape[0]
     sum_x = np.sum(arr[:, 0])
     sum_y = np.sum(arr[:, 1])
     return np.array([sum_x/length, sum_y/length])
-
-
-crime_df, crime_coords = full_crime_compile()
-clusters_df, clusters, centers = fullcrime_kmeans(crime_df, crime_coords, n_clusters=15)
-# print(clusters_df.head())
-
-centroid = centroidnp(crime_coords)
-
-h = kernelbandwidth(crime_coords, centroid)
-
-print(h)
-
-
-
-
-
-# x, y = np.split(firstcluster, 2, 1)
-
-# print('h bandwidth is: ', h)
-# #DEFINE GRID SIZE AND RADIUS(h)
-# #grid_size 3rd decimal place for the area of a large field
-# grid_size=0.005
-# #h is our kernel radius to determine cluster influence
-
-
-# #GETTING X,Y MIN AND MAX
-# x_min=min(x)
-# x_max=max(x)
-# y_min=min(y)
-# y_max=max(y)
-
-# #CONSTRUCT GRID
-# x_grid=np.arange(x_min-h,x_max+h,grid_size)
-# y_grid=np.arange(y_min-h,y_max+h,grid_size)
-# x_mesh,y_mesh=np.meshgrid(x_grid,y_grid)
-
-# #GRID CENTER POINT
-
-# xc=x_mesh+(grid_size/2)
-
-# yc=y_mesh+(grid_size/2)
-
-# plt.scatter(x,y, s=0.5, alpha=0.5)
-
-# #HEATMAP OUTPUT
-# # for row in intensity_list:
-# #     print(row)
-# intensity_list = generate_intensity(x, y, xc, yc)
-# intensity=np.array(intensity_list)
-# print(intensity)
-# plt.pcolormesh(x_mesh,y_mesh,intensity)
-# # plt.colorbar()
-# plt.show()
-
-
-
-'''
-following is for checking cluster center accuracy
-'''
-# x, y = [], []
-# for arr in cluster_group:
-#     x.append(arr[0])
-#     y.append(arr[1])
-# x2 = centers[0][0]
-# y2 = centers[0][1]
-
-# colors = (0, 0, 0)
-# plt.scatter(x, y, s=1, c=colors, alpha=0.5)
-# plt.scatter(x2, y2, s=2, c='blue', alpha=1)
-# plt.show()
-
 
 
 

@@ -273,8 +273,8 @@ if __name__=='__main__':
     # fixed_aws = awsz.head(4755)
     # fixed_aws.to_csv('awz_61325_66080.csv')
     
-    fix_shp(56909, 57422)   #514
-    fix_shp(66080, 69800)   #3720
+    # fix_shp(56909, 57422)   #514
+    # fix_shp(66080, 69800)   #3720
     
     
     # awsz = pd.read_csv('awzillow_69800_80765.csv')
@@ -286,8 +286,8 @@ if __name__=='__main__':
     
     
     
-    # fix_shp(79131, 80765)   #1634
-    #fix_shp(94201, 97067) #+4500
+    fix_shp(79131, 80765)   #1634
+    fix_shp(94201, 97067) #+4500
 
     
     # awsz = pd.read_csv('awzillow_89359_98207.csv')
