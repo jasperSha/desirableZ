@@ -1,5 +1,6 @@
 *.ini
 *.env
+*.csv
 configuration/
 __pycache__/
 *.py[cod]
