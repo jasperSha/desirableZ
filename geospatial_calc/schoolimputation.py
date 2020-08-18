@@ -8,6 +8,7 @@ import geopandas as gpd
 from scipy.spatial import cKDTree
 from sklearn.impute import KNNImputer
 from sklearn import preprocessing
+from ml_house.kdtree import geo_knearest
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
@@ -40,69 +41,8 @@ def assign_property_school_districts(properties_df: gpd.GeoDataFrame, districts_
     
     return schools_joined_districts_df
 
-
-
-def geo_knearest(origins_df: gpd.GeoDataFrame, neighbors_df: gpd.GeoDataFrame, impute: bool=True, k: int=10) -> list:
-    """
-    
-
-    Parameters
-    ----------
-    origins_df : gpd.GeoDataFrame
-        property dataframe with 'geometry' in WKT format.
-    neighbors_df : gpd.GeoDataFrame
-        schools in the same district as the properties dataframe with 'geometry' in WKT format.
-
-    Returns
-    -------
-    List of lists of 2-tuples: (gsID, distance) of neighboring k=10 schools to each property in origins_df 
-                               (in the same district). each list correponds to the same index of the individual
-                               row in the origins_df (one to many relationship)
-                               
-                               if NOT impute: returns dictionary of lists for each housing property, ie
-                               { 'zpid' : [(gsID, distance), (gsID, distance) ...] }
-
-    """
-    
-    #scipy's cKDTree spatial index's query method
-    #building a kd tree: time: O(nlogn)  space: O(kn)
-    #knn search ~O(logn)
-    
-    #first reset indices so they line up
-    origins_df.reset_index(drop=True, inplace=True)
-    neighbors_df.reset_index(drop=True, inplace=True)
-    
-    #create numpy array out of the geometry of each dataframe
-    origins = np.array(list(origins_df.geometry.apply(lambda x: (x.x, x.y))))
-    neighbors = np.array(list(neighbors_df.geometry.apply(lambda x: (x.x, x.y))))
-    
-    #create the binary tree from which to query the neighbors
-    btree = cKDTree(neighbors)
-    
-    #looking for 5 nearest for the average schools rating, but store k=3 for reference
-    #finds distance, and index in second gdf of each neighbor
-    dist, idx = btree.query(origins, k)
-    
-    #using the dataframe index to find the gsID of the neighboring schools
-    gsids = []
-    for school_idx in idx:
-        gsids.append(neighbors_df['gsId'].iloc[school_idx])
     
     
-    id_dist = []
-    for tup in list(zip(gsids, dist)):
-        id_dist.append(list(zip(tup[0],tup[1])))
-          
-    if impute:
-        return id_dist
-    else:
-        #aggregating for property, explicitly returning the associated zpid
-        zpids = origins_df['zpid'].tolist()
-        zp_id_dist = dict(zip(zpids, id_dist))
-        return zp_id_dist
-    
-        
-
 
 def school_imputation(schools_df: gpd.GeoDataFrame, k: int=3) -> gpd.GeoDataFrame:
     """
@@ -221,6 +161,7 @@ def property_school_rating(zill_df: gpd.GeoDataFrame, full_schools: gpd.GeoDataF
             zill_df.at[zill_df['zpid']==house, 'edu_rating'] = weighted_rating
             zill_df.at[zill_df['zpid']==house, 'school_count'] = k
             # zill_df['edu_rating'].loc[zill_df['zpid']==house] = weighted_rating
+            
     return zill_df
 
 

@@ -174,6 +174,7 @@ def fix_shp(prev_count, stop_limit):
     print(new_awz.head())
     os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
     new_awz.to_csv('awz_%s_%s.csv'% (prev_count, count))
+    print('new count: ', count)
     return
         
 
@@ -310,5 +311,8 @@ if __name__=='__main__':
     # fixed_aws = awsz.head(5022)
     # fixed_aws.to_csv('awz_107113_112135.csv')
     
-    fix_shp(116135, 119279)   #3144
+    # fix_shp(116136, 119279)   #3143
+    # fix_shp(119280, 120637)   #+4500
     
+    
+    fix_shp(129638, 4500)

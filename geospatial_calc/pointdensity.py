@@ -1,11 +1,6 @@
 import numpy as np
 import pandas as pd
-import os
-from shapely.wkt import loads
-import matplotlib.pyplot as plt
-import datetime, time
-import seaborn as sns
-
+import datetime
 
 def kmToLat(km):
     #assuming close to equator
