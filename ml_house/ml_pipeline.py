@@ -9,7 +9,6 @@ import time
 from geospatial_calc.to_wkt import to_wkt
 from kdtree import knearest_balltree
 import matplotlib.pyplot as plt
-# from geospatial_calc.schoolimputation import testing, assign_property_school_districts, school_imputation, geo_knearest, property_school_rating
 
 '''
 current bottlenecks:
@@ -121,7 +120,8 @@ TODO: clean data such as NaN values, bogus data due to lack of underlying data
 #take a look at the data
 describe = houses_df.describe()
 
-
+districts = houses_df.groupby('DISTRICT')
+print(districts[0])
 
 
 

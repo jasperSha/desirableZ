@@ -1,11 +1,8 @@
 from sodapy import Socrata #module specific to socrata data site
 import pandas as pd
-
 from sqlalchemy import create_engine
 import psycopg2
 import io
-
-
 import os
 from dotenv import load_dotenv
 load_dotenv()
