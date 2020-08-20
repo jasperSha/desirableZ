@@ -1,13 +1,14 @@
-
 import os, sys
 import pandas as pd
 import numpy as np
+import time
 import glob
 import geopandas as gpd
 from shapely.wkt import loads
 import time
 from geospatial_calc.to_wkt import to_wkt
 from kdtree import knearest_balltree
+import matplotlib.pyplot as plt
 # from geospatial_calc.schoolimputation import testing, assign_property_school_districts, school_imputation, geo_knearest, property_school_rating
 
 '''
@@ -66,6 +67,15 @@ def add_schools():
     return zillow
     
 
+def normalize(df):
+    df = df.select_dtypes(include=['int64', 'float64'])
+    result = df.copy()
+    for feature_name in df.columns:
+        max_value = df[feature_name].max()
+        min_value = df[feature_name].min()
+        result[feature_name] = (df[feature_name] - min_value) / (max_value - min_value)
+    return result
+
 
 
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml_house')
@@ -81,17 +91,40 @@ os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial_calc')
 crime_density = pd.read_csv('crime_density_rh_gridsize_1.csv')
 cd_gdf = to_wkt(crime_density)
 
+
+start = time.time()
+
 #add crime densities to houses
+'''
+balltree takes 76.64 seconds (maybe needs optimizing)
+'''
 houses_df = knearest_balltree(zill_gdf, cd_gdf, radius=1.1)
+
+end = time.time()
+print('balltree time: ', end - start)
+
+
+
+#log (density + 1) to handle zeros for log norm
+houses_df['crime_density'] = houses_df['crime_density'].apply(lambda x: x + 1)
 houses_df['crime_density'] = np.log(houses_df['crime_density'])
+
 
 '''
 TODO: clean data such as NaN values, bogus data due to lack of underlying data
       divide based on useCode?
 
 
-
 '''
+# houses_df = normalize(houses_df)
+
+#take a look at the data
+describe = houses_df.describe()
+
+
+
+
+
 
 
 #begin modeling
