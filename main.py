@@ -16,8 +16,6 @@ key = os.getenv('ZILLOW_API_KEY')
 from zillowObject import zillowObject
 from zestimate import get_zestimate
 from deepsearchresults import deep_search
-import postgrestaccess
-from zipcode_parse import parse_gpkg as gpkg
 import pandas as pd
 import geopandas as gpd
 import xml.etree.ElementTree as ET
@@ -85,7 +83,7 @@ def run_raw_address(citystatezip, address): #wrap into a function elsewhere?
             return zillowProperty
             #upload property to postgresql db
             # print('recording zillow property: %s'%zillowProperty)
-            # postgrestaccess.record_zillowProperty(zillowProperty)
+            # record_zillowProperty(zillowProperty)
         else:
             print('this address has no zpid, continuing..')
             
@@ -191,7 +189,7 @@ if __name__=='__main__':
 
     
     
-    fix_shp(143139, 4500)
+    fix_shp(183649, 4500)
     
     
     

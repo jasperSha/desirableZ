@@ -8,7 +8,9 @@ from shapely.wkt import loads
 import time
 from geospatial_calc.to_wkt import to_wkt
 from kdtree import knearest_balltree
+from sklearn.preprocessing import normalize
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 '''
 current bottlenecks:
@@ -66,7 +68,7 @@ def add_schools():
     return zillow
     
 
-def normalize(df):
+def pandas_normalize(df):
     df = df.select_dtypes(include=['int64', 'float64'])
     result = df.copy()
     for feature_name in df.columns:
@@ -76,67 +78,175 @@ def normalize(df):
     return result
 
 
-
+# %% Read Zillow data
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml_house')
 zillow = pd.read_csv('full_zillow_with_schools.csv')
 zill_gdf = gpd.GeoDataFrame(zillow, crs='EPSG:4326', geometry=zillow['geometry'].apply(loads))
 
 
-# #next add crime density variable
+
+# %% Read crime density and append to housing dataframe, then log normal of crime
+'''
+TODO: clean data such as NaN values, bogus data due to lack of underlying data
+      divide based on useCode?
+'''
 
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial_calc')
-
 #crime densities have not been normalized yet
 crime_density = pd.read_csv('crime_density_rh_gridsize_1.csv')
 cd_gdf = to_wkt(crime_density)
 
-
-start = time.time()
-
-#add crime densities to houses
 '''
 balltree takes 76.64 seconds (maybe needs optimizing)
 '''
 houses_df = knearest_balltree(zill_gdf, cd_gdf, radius=1.1)
 
-end = time.time()
-print('balltree time: ', end - start)
+
+
+# %% Normalizing Data
+norm_df = houses_df
+
+# log (density + 1) to handle zeros for log norm
+norm_df['crime_density'] = norm_df['crime_density'].apply(lambda x: x + 1)
+norm_df['crime_density'] = np.log(norm_df['crime_density'])
 
 
 
-#log (density + 1) to handle zeros for log norm
-houses_df['crime_density'] = houses_df['crime_density'].apply(lambda x: x + 1)
-houses_df['crime_density'] = np.log(houses_df['crime_density'])
 
 
-'''
-TODO: clean data such as NaN values, bogus data due to lack of underlying data
-      divide based on useCode?
-
-
-'''
-# houses_df = normalize(houses_df)
-
-#take a look at the data
+# %% Use Code Groups
 describe = houses_df.describe()
 
-districts = houses_df.groupby('DISTRICT')
-print(districts[0])
+districts = houses_df.groupby('useCode')
+
+
+
+condo = districts.get_group('Condominium')
+coop = districts.get_group('Cooperative')
+duplex = districts.get_group('Duplex')
+miscellaneous = districts.get_group('Miscellaneous')
+mobile = districts.get_group('Mobile')
+familyTwotoFour = districts.get_group('MultiFamily2To4')
+familyFivePlus = districts.get_group('MultiFamily5Plus')
+quad = districts.get_group('Quadruplex')
+townhouse = districts.get_group('Townhouse')
+triplex = districts.get_group('Triplex')
+unknown = districts.get_group('Unknown')
+vacantresidential = districts.get_group('VacantResidentialLand')
+
+# %% Group by Zip Code
+
+zipcodes = houses_df.groupby('zipcode')
+
+beverly_codes = [90035, 90210]
+beverly = pd.concat([zipcodes.get_group(code) for code in beverly_codes])
+
+#measuring rent against square footage
+x_var = 'finishedSqFt'
+data = pd.concat([beverly['rentzestimate'], beverly[x_var]], axis=1)
+data.plot.scatter(x=x_var, y='rentzestimate', ylim=(0, 30000))
 
 
 
 
 
-#begin modeling
+
+
+
+# %% Single Family Residence Data Cleaning
+singlefam = districts.get_group('SingleFamily')
+
+
+zero_idx = singlefam.index[singlefam['zestimate']==0]
+'''
+Single Family Residences with a zestimate of 0. 
+
+Last Sold Price maybe more accurate indicator of home value, but for now
+we'll just remove the zero valued zestimates. (only 123 of them)
+'''
+zerosinglefam = singlefam.loc[zero_idx]
+singlefam = singlefam.loc[set(singlefam.index) - set(zero_idx)]
+
+
+
+# %% Modeling Single Family Data
+sns.set(style='whitegrid', palette='muted', font_scale=1)
+
+
+
+#beverly hills houses massively skew market, removing for now just for ease visualization
+# bev = [90035, 90210]
+# singlefam = singlefam[~singlefam['zipcode'].isin(bev)]
+
+
+describe = singlefam.describe()
+# singlefam['rentzestimate'] = np.log(singlefam['rentzestimate'])
+sns.distplot(singlefam['lastSoldPrice'])
+
+
+#model against square footage
+x_var = 'finishedSqFt'
+data = pd.concat([singlefam['lastSoldPrice'], singlefam[x_var]], axis=1)
+data.plot.scatter(x=x_var, y='lastSoldPrice', ylim=(0, 8000000))
+
+
+
+#general correlation heatmap
+corr_matrix = singlefam.corr()
+fig, ax = plt.subplots(figsize=(12, 9))
+sns.heatmap(corr_matrix, vmax=.8, square=True)
+
+#check top 5 correlations
+k = 10
+cols = corr_matrix.nlargest(k, 'rentzestimate')['rentzestimate'].index
+fig, ax = plt.subplots(figsize=(14, 10))
+sns.heatmap(singlefam[cols].corr(), vmax=.8, square=True)
+
+
+# %% Checking null data
+total = norm_df.isnull().sum().sort_values(ascending=False)
+percent = (norm_df.isnull().sum()/norm_df.isnull().count()).sort_values(ascending=False)
+missing_data = pd.concat([total, percent], axis=1, keys=['Total', 'Percent'])
+
+
+'''
+Missing data:
+                   Total   Percent
+FIPScounty          2612  0.023418
+rentzestimate        147  0.001318
+valueChange           32  0.000287
+lastSoldDate          10  0.000090
+taxAssessmentYear      2  0.000018
+lastupdated            1  0.000009
+yearBuilt              1  0.000009
+
+
+This missing data is negligible. Most of it will be cleared with the cleaning
+of null values from the single family groupby dataframe.
+
+'''
+
+# %% Scaling the data
+
+'''
+numerical:
+crime -> log
+rentzestimate -> normal
+zestimate -> normal
+lotSizeSqFt -> normal
+low -> normal
+high -> normal
+zindexValue -> normal
+finishedSqFt -> normal
+taxAssessment -> normal
+edu_rating -> normal
 
 
 
 
 
 
-
-
-
+'''
 
 
 
