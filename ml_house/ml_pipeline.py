@@ -66,12 +66,13 @@ def add_schools():
     zillow = property_school_rating(zill_df, full_schools)
     
     return zillow
-    
 
-def pandas_normalize(df):
-    df = df.select_dtypes(include=['int64', 'float64'])
+
+
+
+def normalize_df(df, cols):        
     result = df.copy()
-    for feature_name in df.columns:
+    for feature_name in cols:
         max_value = df[feature_name].max()
         min_value = df[feature_name].min()
         result[feature_name] = (df[feature_name] - min_value) / (max_value - min_value)
@@ -100,17 +101,7 @@ cd_gdf = to_wkt(crime_density)
 balltree takes 76.64 seconds (maybe needs optimizing)
 '''
 houses_df = knearest_balltree(zill_gdf, cd_gdf, radius=1.1)
-
-
-
-# %% Normalizing Data
 norm_df = houses_df
-
-# log (density + 1) to handle zeros for log norm
-norm_df['crime_density'] = norm_df['crime_density'].apply(lambda x: x + 1)
-norm_df['crime_density'] = np.log(norm_df['crime_density'])
-
-
 
 
 
@@ -226,11 +217,18 @@ of null values from the single family groupby dataframe.
 
 '''
 
+# %% Cleaning zeros
+zero_idx = norm_df.index[norm_df['zestimate']==0]
+zeros = norm_df.loc[zero_idx]
+norm_df = norm_df.loc[set(norm_df.index) - set(zero_idx)]
+
+
+
 # %% Scaling the data
 
 '''
 numerical:
-crime -> log
+crime_density -> log
 rentzestimate -> normal
 zestimate -> normal
 lotSizeSqFt -> normal
@@ -240,18 +238,30 @@ zindexValue -> normal
 finishedSqFt -> normal
 taxAssessment -> normal
 edu_rating -> normal
+lastSoldDate -> None
+yearBuilt -> None
+valueChange -> normal
 
 
-
-
-
+We'll be using normalization instead of standardization. Because the high
+variance in the data due to the socioeconomic distribution of Los Angeles,
+the data most likely does NOT follow a standard gaussian curve. Subsequently,
+normalization makes no assumptions to the distribution of the data, and
+allows for the skewed scales, though not to the same degree as using log
+to normalize the data.
 
 '''
 
 
+# log (density + 1) to handle zeros for log norm
+norm_df['crime_density'] = norm_df['crime_density'].apply(lambda x: x + 1)
+norm_df['crime_density'] = np.log(norm_df['crime_density'])
 
+norm_cols = ['rentzestimate', 'zestimate', 'lotSizeSqFt', 'low', 'high', 'zindexValue',
+             'finishedSqFt', 'taxAssessment', 'edu_rating', 'valueChange', 'lastSoldPrice',
+             'bathrooms', 'bedrooms']
 
-
+norm_df = normalize_df(norm_df, norm_cols)
 
 
 
