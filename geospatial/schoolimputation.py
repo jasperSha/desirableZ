@@ -1,16 +1,7 @@
-import os
 import pandas as pd
 import numpy as np
-import itertools
-from operator import itemgetter
-from shapely.geometry import Point
 import geopandas as gpd
-from scipy.spatial import cKDTree
-from sklearn.impute import KNNImputer
-from sklearn import preprocessing
 from ml_house.kdtree import geo_knearest
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 
 
 def assign_property_school_districts(properties_df: gpd.GeoDataFrame, districts_df: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
