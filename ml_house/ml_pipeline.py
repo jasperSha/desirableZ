@@ -12,6 +12,8 @@ from sklearn.preprocessing import normalize
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+sns.set(style='whitegrid', palette='muted', font_scale=1)
+
 '''
 current bottlenecks:
     school imputation
@@ -79,6 +81,54 @@ def normalize_df(df, cols):
     return result
 
 
+def rmse(predictions, targets):
+    '''
+    Root Mean Squared Error Loss Function
+    RMSE = sqrt( avg(y - yhat)^2),
+    where y is the observed value and yhat is the prediction.
+    
+    Measures the average magnitude of error.
+    
+    Greatly amplifies the error measurement of outliers because of the
+    square operation, thus penalizing outliers far more.
+    
+    Might be optimal for this particular dataset, because of the extreme
+    variance in housing values. Either we use RMSE to handle the outliers,
+    or, and I think this might be the better option, we divide the dataset
+    by zones/clusters, and run models on each zone separately, as the
+    model for the Beverly Hills zipcode is going to be essentially useless
+    for the model for Northridge.
+    
+    '''
+    diff = predictions - targets
+    diff_squared = diff**2
+    mean_diff_squared = np.mean(diff_squared)
+    
+    rmse = np.sqrt(mean_diff_squared)
+    
+    return rmse
+
+def mae(predictions, targets):
+    '''
+    Mean Absolute Loss Error Function
+    MAE = avg(abs(y - yhat))
+    
+    Also measures the average magnitude of error, but uses absolute value
+    to eliminate the direction of error. It also equally weights all data 
+    points. If we separate and run models by zones/clusters, then this
+    will probably be the optimal loss function to use.
+    
+    '''
+    diff = predictions - targets
+    abs_diff = abs(diff)
+    
+    mae = np.mean(abs_diff)
+    return mae
+    
+    
+
+
+
 # %% Read Zillow data
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml_house')
 zillow = pd.read_csv('full_zillow_with_schools.csv')
@@ -101,7 +151,9 @@ cd_gdf = to_wkt(crime_density)
 balltree takes 76.64 seconds (maybe needs optimizing)
 '''
 houses_df = knearest_balltree(zill_gdf, cd_gdf, radius=1.1)
-norm_df = houses_df
+
+#convert back to regular dataframe for pandas functions
+norm_df = pd.DataFrame(houses_df.drop(columns='geometry'))
 
 
 
@@ -125,29 +177,13 @@ triplex = districts.get_group('Triplex')
 unknown = districts.get_group('Unknown')
 vacantresidential = districts.get_group('VacantResidentialLand')
 
-# %% Group by Zip Code
 
-zipcodes = houses_df.groupby('zipcode')
-
-beverly_codes = [90035, 90210]
-beverly = pd.concat([zipcodes.get_group(code) for code in beverly_codes])
-
-#measuring rent against square footage
-x_var = 'finishedSqFt'
-data = pd.concat([beverly['rentzestimate'], beverly[x_var]], axis=1)
-data.plot.scatter(x=x_var, y='rentzestimate', ylim=(0, 30000))
+# %% Modeling Single Family data
 
 
-
-
-
-
-
-
-# %% Single Family Residence Data Cleaning
 singlefam = districts.get_group('SingleFamily')
 
-
+#Cleaning Zeroes
 zero_idx = singlefam.index[singlefam['zestimate']==0]
 '''
 Single Family Residences with a zestimate of 0. 
@@ -158,16 +194,6 @@ we'll just remove the zero valued zestimates. (only 123 of them)
 zerosinglefam = singlefam.loc[zero_idx]
 singlefam = singlefam.loc[set(singlefam.index) - set(zero_idx)]
 
-
-
-# %% Modeling Single Family Data
-sns.set(style='whitegrid', palette='muted', font_scale=1)
-
-
-
-#beverly hills houses massively skew market, removing for now just for ease visualization
-# bev = [90035, 90210]
-# singlefam = singlefam[~singlefam['zipcode'].isin(bev)]
 
 
 describe = singlefam.describe()
@@ -194,11 +220,13 @@ fig, ax = plt.subplots(figsize=(14, 10))
 sns.heatmap(singlefam[cols].corr(), vmax=.8, square=True)
 
 
+
+
 # %% Checking null data
 total = norm_df.isnull().sum().sort_values(ascending=False)
 percent = (norm_df.isnull().sum()/norm_df.isnull().count()).sort_values(ascending=False)
 missing_data = pd.concat([total, percent], axis=1, keys=['Total', 'Percent'])
-
+print(missing_data)
 
 '''
 Missing data:
@@ -217,10 +245,15 @@ of null values from the single family groupby dataframe.
 
 '''
 
+
+
 # %% Cleaning zeros
-zero_idx = norm_df.index[norm_df['zestimate']==0]
+zest_zero_idx = norm_df.index[norm_df['zestimate']==0]
+rent_zero_idx = norm_df.index[norm_df['rentzestimate']==0]
+zero_idx = zest_zero_idx.append(rent_zero_idx)
 zeros = norm_df.loc[zero_idx]
-norm_df = norm_df.loc[set(norm_df.index) - set(zero_idx)]
+zero_df = norm_df.loc[set(norm_df.index) - set(zero_idx)]
+
 
 
 
@@ -241,6 +274,8 @@ edu_rating -> normal
 lastSoldDate -> None
 yearBuilt -> None
 valueChange -> normal
+bathrooms -> normal
+bedrooms -> normal
 
 
 We'll be using normalization instead of standardization. Because the high
@@ -250,18 +285,98 @@ normalization makes no assumptions to the distribution of the data, and
 allows for the skewed scales, though not to the same degree as using log
 to normalize the data.
 
-'''
+Crime density will be log normalized.
 
+zestimate, rentzestimate, taxAssessment, 
+
+'''
+norm_df = zero_df
 
 # log (density + 1) to handle zeros for log norm
-norm_df['crime_density'] = norm_df['crime_density'].apply(lambda x: x + 1)
-norm_df['crime_density'] = np.log(norm_df['crime_density'])
+norm_df['crime_density'] = zero_df['crime_density'].apply(lambda x: x + 1)
+norm_df['crime_density'] = np.log(zero_df['crime_density'])
 
 norm_cols = ['rentzestimate', 'zestimate', 'lotSizeSqFt', 'low', 'high', 'zindexValue',
              'finishedSqFt', 'taxAssessment', 'edu_rating', 'valueChange', 'lastSoldPrice',
              'bathrooms', 'bedrooms']
 
 norm_df = normalize_df(norm_df, norm_cols)
+
+
+
+
+
+# %% Creating dummy variables for useCode categories
+
+'''
+In order to account for the different categories of use code,
+dummy variables will be created to represent each category.
+This is necessary because the evaluations of properties that are
+considered "Vacant Residential Lots" are too skewed from "Single Family"
+for the Loss function to have any meaning.
+
+To avoid the dummy variable trap, we use SingleFamily as the n0 variable,
+and for the rest we'll use one-hot encoding.
+
+Coding for the rest of the dummy variables:
+    for (0 to 11) di to dn:
+        d0 : 'Condominium'
+        d1 : 'Cooperative'
+        d2 : 'Duplex'
+        d3 : 'Miscellaneous'
+        d4 : 'Mobile'
+        d5 : 'MultiFamily2To4'
+        d6 : 'MultiFamily5Plus'
+        d7 : 'Quadruplex'
+        d8 : 'Townhouse'
+        d9 : 'Triplex'
+        d10 : 'Unknown'
+        d11 : 'VacantResidentialLand'
+        
+Zipcodes will also be categorical. However, due to the structure of the zipcode,
+there can be a bit more information gleaned from it.
+
+The first digit represents the state. 2nd and 3rd represent the sectional center
+or large city post office. Final two digits represent the associate post office
+or delivery area. Essentially zip codes do NOT represent geographical areas,
+but address groups/delivery routes. Thus they can geographically overlap.
+
+
+Although the first digit isn't necessarily relevant now, as all our test data
+is contained within Los Angeles, CA, we'll keep it for sake of posterity/scaleability.
+We'll keep the 2nd and 3rd as well for denotation of a decently sized distribution 
+zone, and we'll leave the last two so that our granularity is not TOO fine.
+
+So the first three will be treated as categorical, and dummy variables will
+be created for them.
+
+
+    
+'''
+
+#get_dummies automatically unravels column and assigns value by one-hot encoding
+#Condominium was dropped as the dummy variable trap, and useCode was dropped as well.
+dummy_df = pd.get_dummies(norm_df, columns=['useCode'], drop_first=True, prefix='', prefix_sep='')
+
+
+
+# %% Final Cleaning of dataframe of unnecessary columns
+
+'''
+Here we drop the unneeded columns for training our model:
+    zpid
+    percentile
+    street
+    city
+    state
+    taxAssessmentYear
+    
+    
+'''
+
+
+
+
 
 
 
