@@ -2,6 +2,46 @@ import numpy as np
 import pandas as pd
 import datetime
 
+
+'''
+Geospatial Point Density Algorithm, translated from R to Python.
+As an inversion of the typical kernel density algorithm used to 
+determine the population density of a region, the point density
+algorithm seeks to bypass the typical problems inherent to the
+kernel density algorithm.
+
+The biggest problem with the kernel density algorithm is threefold:
+   
+The first and most impactful one is the choice of kernel bandwidth.
+The bandwidth selection for smoothing out the kernels, depending on the
+granularity of the data point distribution, can easily obscure important
+points, or, if the bandwidth selected is too fine, then the runtime can
+reach extreme levels, especially in the case here where the crime data
+contains millions of points.
+
+The other two parameters to consider are the distribution function and,
+in the case of geospatial kernel density, the 2-D bin sizes. Whether
+using the quartic or normal distributions, depending on the location
+of the grid, the aggregation of points in each bin can vary widely. 
+
+For example, using the quartic distribution, which favors points located
+near the center with a rapid fall-off approaching the edges, even adjusting the
+meshgrid location by ~.001 latitudinal/longitudinal degrees, which corresponds
+to about ~110 kilometers or about the size of a large agricultural field,
+the resulting apparent density of that bin can significantly change, even
+though it would be easy to argue that the crime density of a neighborhood
+does NOT drastically change across the width of a field.
+
+
+With all of these problems, I decided to use an inversion of the kernel
+density algorithm. Instead of designating an arbitrary square mesh grid, overlaying
+it over an area that has naturally irregular distributions across geographic
+lines, a mesh would arise from the points themselves. 
+
+
+
+'''
+
 def kmToLat(km):
     #assuming close to equator
     return km/111.2
