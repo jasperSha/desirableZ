@@ -20,7 +20,7 @@ reach extreme levels, especially in the case here where the crime data
 contains millions of points.
 
 The other two parameters to consider are the distribution function and,
-in the case of geospatial kernel density, the 2-D bin sizes. Whether
+in the case of geospatial kernel density, the 2-dimensional bin sizes. Whether
 using the quartic or normal distributions, depending on the location
 of the grid, the aggregation of points in each bin can vary widely. 
 
@@ -30,15 +30,57 @@ meshgrid location by ~.001 latitudinal/longitudinal degrees, which corresponds
 to about ~110 kilometers or about the size of a large agricultural field,
 the resulting apparent density of that bin can significantly change, even
 though it would be easy to argue that the crime density of a neighborhood
-does NOT drastically change across the width of a field.
+does NOT drastically change across the width of a field, but due to the 
+artificial restraint of the meshsize and bandwidth search radius, it is
+altered.
 
 
 With all of these problems, I decided to use an inversion of the kernel
-density algorithm. Instead of designating an arbitrary square mesh grid, overlaying
-it over an area that has naturally irregular distributions across geographic
-lines, a mesh would arise from the points themselves. 
+density algorithm. Instead of designating an arbitrary square mesh grid, 
+overlaying it over an area that has naturally irregular distributions across 
+geographic lines, a mesh would arise from the points themselves. 
 
 
+First, we still have to generate a simulated mesh. Using the Silverman's Rule
+of Thumb and the haversine formula for determining distance between two points
+on a sphere (as explained in detail in the kerneldensity.py module), we find
+a suitable search radius, about ~.0x degrees, or ~1.1 kilometers.
+
+Once each point has been rounded to a certain radius stepsize, we then iterate
+across the points. (In the future I do plan on revisiting this part, and 
+                    dividing the crime data into blocks, then threads, and
+                    perhaps work on parallelizing the density mesh generation)
+
+For each point, we use our pre-determined gridsize to create small grid steps
+along each latitude and longitude. Now, we will increase the value of the mesh
+grid by the population density of that particular point (as the data points were
+                                                         rounded off, some converge
+                                                         and are aggregated onto
+                                                         points).
+Because we're looking for a circular generative mesh, we will use all of the
+longitude coordinate points intersecting the center point, but limit the latitude 
+coordinates.
+
+The theorem states, where u, v, and w are vectors extending from the center of
+the sphere to the surface, and a = uv, b = uw, and c = vw,
+
+then: cos(c) = cos(a) * cos(b),
+
+where a, b, and c are essentially the difference in radians from the angle
+between uv, uw, and vw, AND, it is a special case where C is a right angle.
+
+Thus we take the cosine of the desired search radius, the cosine of the
+difference in latitude between each grid bar and the data point in the center,
+and the arccos of their quotient is the length of the desired latitude vector.
+
+Once we have the latitude vector corresponding to each longitude, we then zero
+out all the points not included, and all that's left is to then
+add the density of the center point to the value of the remaining mesh points.
+
+Finally, we stack all of these numpy arrays with coordinates and density values,
+stack according to common coordinate points, and sum up the remaining values.
+
+Normalization and analysis of the resultant date values is left for another module.
 
 '''
 
