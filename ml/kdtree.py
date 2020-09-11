@@ -6,13 +6,6 @@ from sklearn.neighbors import BallTree
 import time
 
 
-'''
-task: to determine the local crime mesh values for a given house,
-      aggregate then append to the house attributes vector.
-     
-        
-Current method: use ball tree, 'haversine' metric, use n
-'''
 
 def geo_knearest(origins_df: gpd.GeoDataFrame, neighbors_df: gpd.GeoDataFrame, impute: bool=True, k: int=10) -> list:
     """

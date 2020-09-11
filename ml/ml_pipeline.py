@@ -6,18 +6,39 @@ import glob
 import geopandas as gpd
 from shapely.wkt import loads
 import time
-from geospatial_calc.to_wkt import to_wkt
-from kdtree import knearest_balltree
-from sklearn.preprocessing import normalize
+from geospatial.to_wkt import to_wkt
+from ml.kdtree import knearest_balltree
 import matplotlib.pyplot as plt
 import seaborn as sns
+import torch
+
 
 sns.set(style='whitegrid', palette='muted', font_scale=1)
 
 '''
-current bottlenecks:
-    school imputation
-    crime_df compiling (point density algo itself is fast enough, need to write full crime_df to csv)
+
+TODO:
+    Pickle:
+        multivariate regression model
+        the school ratings map
+        the crime density map
+        also current full database of houses
+Once pickled,
+    loaded_model = pickle.load(open('model.pkl', 'rb'))
+    pass address through:
+        use zillow api to add housing attributes
+        add schools and location on crime density map
+        
+    pass address into the model.predict()
+    buy or no buy = loaded_model.predict(address)
+
+SEPARATELY:
+    we render heatmap of less expensive properties in relation to their
+    attributes from current pickled houses object
+    
+    current_houses = pickle.load(open('houses.pkl', 'rb'))
+    
+
 
 '''
 
@@ -81,7 +102,7 @@ def normalize_df(df, cols):
     return result
 
 
-def rmse(predictions, targets):
+def rmse_loss(predictions: np.array, targets: np.array):
     '''
     Root Mean Squared Error Loss Function
     RMSE = sqrt( avg(y - yhat)^2),
@@ -89,34 +110,36 @@ def rmse(predictions, targets):
     
     Measures the average magnitude of error.
     
-    Greatly amplifies the error measurement of outliers because of the
-    square operation, thus penalizing outliers far more.
+    RMSE minimizes the squared deviations and finds the *mean*
+    MAE minimizes the sum of absolute deviations resulting in the *median*
     
-    Might be optimal for this particular dataset, because of the extreme
-    variance in housing values. Either we use RMSE to handle the outliers,
-    or, and I think this might be the better option, we divide the dataset
-    by zones/clusters, and run models on each zone separately, as the
+    
+    Either we use MAE to handle the outliers, or we divide the dataset
+    by zones/clusters, and run RMSE on each zone separately, as the
     model for the Beverly Hills zipcode is going to be essentially useless
-    for the model for Northridge.
+    for the model for Northridge, and vice versa.
+    
+    Might be optimal for this particularly for finding good deals on houses.
     
     '''
     diff = predictions - targets
-    diff_squared = diff**2
+    diff_squared = np.square(diff)
     mean_diff_squared = np.mean(diff_squared)
     
     rmse = np.sqrt(mean_diff_squared)
     
     return rmse
 
-def mae(predictions, targets):
+def mae_loss(predictions, targets):
     '''
     Mean Absolute Loss Error Function
     MAE = avg(abs(y - yhat))
     
     Also measures the average magnitude of error, but uses absolute value
     to eliminate the direction of error. It also equally weights all data 
-    points. If we separate and run models by zones/clusters, then this
-    will probably be the optimal loss function to use.
+    points. If we run the model on all the zones/clusters together, the
+    MAE will probably be optimal, and not be thrown off as much by the
+    massive outliers resultant from the wealth disparity in LA.
     
     '''
     diff = predictions - targets
@@ -124,13 +147,17 @@ def mae(predictions, targets):
     
     mae = np.mean(abs_diff)
     return mae
-    
-    
+   
+'''
+might want to use a combination of both loss functions to handle
+bias-variance tradeoff in an optimal manner.
+'''
+
 
 
 
 # %% Read Zillow data
-os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml_house')
+os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml')
 zillow = pd.read_csv('full_zillow_with_schools.csv')
 zill_gdf = gpd.GeoDataFrame(zillow, crs='EPSG:4326', geometry=zillow['geometry'].apply(loads))
 
@@ -142,7 +169,7 @@ TODO: clean data such as NaN values, bogus data due to lack of underlying data
       divide based on useCode?
 '''
 
-os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial_calc')
+os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial')
 #crime densities have not been normalized yet
 crime_density = pd.read_csv('crime_density_rh_gridsize_1.csv')
 cd_gdf = to_wkt(crime_density)
@@ -347,16 +374,14 @@ is contained within Los Angeles, CA, we'll keep it for sake of posterity/scaleab
 We'll keep the 2nd and 3rd as well for denotation of a decently sized distribution 
 zone, and we'll leave the last two so that our granularity is not TOO fine.
 
-So the first three will be treated as categorical, and dummy variables will
-be created for them.
+One-hot encoding will be used for the first three codes.
 
-
-    
 '''
 
-#get_dummies automatically unravels column and assigns value by one-hot encoding
-#Condominium was dropped as the dummy variable trap, and useCode was dropped as well.
-dummy_df = pd.get_dummies(norm_df, columns=['useCode'], drop_first=True, prefix='', prefix_sep='')
+#only keeping first three zip code digits
+zips_df = norm_df
+zips_df['zipcode'] = zips_df['zipcode'].apply(lambda x: x //100)
+dummy_df = pd.get_dummies(zips_df, columns=['useCode', 'zipcode'], drop_first=True, prefix='', prefix_sep='')
 
 
 
@@ -370,9 +395,97 @@ Here we drop the unneeded columns for training our model:
     city
     state
     taxAssessmentYear
+    FIPScounty
+    lastSoldDate
+    lastupdated
+    DISTRICT
+    school_count
     
     
 '''
+
+keep_cols =[col for col in dummy_df.columns if col not in ['zpid', 'percentile', 'street', 'city', 'state', 'taxAssessmentYear',
+                                                           'FIPScounty', 'yearBuilt', 'lastSoldDate', 'lastupdated', 'DISTRICT', 'school_count']]
+
+X_train = dummy_df[keep_cols]
+X_train = X_train.dropna()
+
+
+# %% Supervised Regression
+
+'''
+Using mean absolute error loss function
+
+error = mae_loss(predictions, target)
+
+Implement regularisation using lambda parameter.
+
+ie, Loss(y_hat, y) + lambda * N(w),
+
+where w is the weights vector of the loss function, and N(w) is the penalty function,
+restricting 
+Helps prevent overfitting.
+
+To tune the lambda parameter we use cross-validation: divide training data,
+train model for some lambda, test on other half of data. Then repeat procedure
+while varying lambda to minimize the loss function.
+
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
