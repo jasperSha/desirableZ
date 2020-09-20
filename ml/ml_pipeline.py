@@ -7,6 +7,7 @@ import geopandas as gpd
 from shapely.wkt import loads
 import time
 from geospatial.to_wkt import to_wkt
+from geospatial.schoolimputation import assign_property_school_districts, school_imputation, property_school_rating
 from ml.kdtree import knearest_balltree
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -48,18 +49,13 @@ def combine_zillow_csv():
     
     
     df = pd.concat((pd.read_csv(f) for f in all_files), ignore_index=True)
-    
-    
     df = df.drop_duplicates(subset=['zpid'])
-    df = df.drop(df.columns[[0, 1]], axis=1)
-    new_cols = ['zpid', 'rentzestimate', 'zestimate', 'low', 'high', 'valueChange',
-                'zindexValue', 'percentile', 'street', 'city', 'state', 'lotSizeSqFt', 'finishedSqFt',
-                'taxAssessment', 'taxAssessmentYear','zipcode', 'useCode', 'yearBuilt',
-                'bathrooms', 'bedrooms', 'FIPScounty', 'lastSoldDate', 'lastSoldPrice',
-                'lastupdated', 'latitude', 'longitude']
-    df = df[new_cols]
-    os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml_house')
-    df.to_csv('full_zillow.csv', index=False)
+    
+    #fix the csv write that included indices
+    df = df.drop(['Unnamed: 0', 'Unnamed: 0.1'], axis=1)
+    
+    os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
+    df.to_csv('zillow.csv', index=False)
     
 def add_schools():
     '''
@@ -67,9 +63,10 @@ def add_schools():
     read districts
     read zillow
     separate all by district, aggregate ratings
+    combines, writes to file
     '''
-    os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml_house')
-    df = pd.read_csv('full_zillow.csv')
+    os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
+    df = pd.read_csv('zillow.csv')
     
     zillow_gdf = to_wkt(df)
 
@@ -77,9 +74,11 @@ def add_schools():
     os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
     schools_df = gpd.read_file('greatschools/joined.shp')
     schools_df.crs = 'EPSG:4326'
+    
     #school district boundaries
     school_districts_df = gpd.read_file('school_districts_bounds/School_District_Boundaries.shp')
     school_districts_df.crs = 'EPSG:4326'
+    
     #houses with their respective school districts
     zill_df = assign_property_school_districts(zillow_gdf, school_districts_df)
     
@@ -88,7 +87,8 @@ def add_schools():
     full_schools = school_imputation(schools_df)
     zillow = property_school_rating(zill_df, full_schools)
     
-    return zillow
+    os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data')
+    zillow.to_csv('fullzillow.csv', index=False)
 
 
 
@@ -104,7 +104,7 @@ def normalize_df(df, cols):
 
 def rmse_loss(predictions: np.array, targets: np.array):
     '''
-    Root Mean Squared Error Loss Function
+    Root Mean Squared Error Loss Function, aka L2 norm
     RMSE = sqrt( avg(y - yhat)^2),
     where y is the observed value and yhat is the prediction.
     
@@ -132,7 +132,7 @@ def rmse_loss(predictions: np.array, targets: np.array):
 
 def mae_loss(predictions, targets):
     '''
-    Mean Absolute Loss Error Function
+    Mean Absolute Loss Error Function, aka L1 norm
     MAE = avg(abs(y - yhat))
     
     Also measures the average magnitude of error, but uses absolute value
@@ -153,22 +153,19 @@ might want to use a combination of both loss functions to handle
 bias-variance tradeoff in an optimal manner.
 '''
 
-
+# %% Update dataset
+combine_zillow_csv()
+add_schools()
 
 
 # %% Read Zillow data
-os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml')
-zillow = pd.read_csv('full_zillow_with_schools.csv')
+os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data')
+zillow = pd.read_csv('fullzillow.csv')
 zill_gdf = gpd.GeoDataFrame(zillow, crs='EPSG:4326', geometry=zillow['geometry'].apply(loads))
 
 
 
 # %% Read crime density and append to housing dataframe, then log normal of crime
-'''
-TODO: clean data such as NaN values, bogus data due to lack of underlying data
-      divide based on useCode?
-'''
-
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial')
 #crime densities have not been normalized yet
 crime_density = pd.read_csv('crime_density_rh_gridsize_1.csv')
@@ -278,7 +275,6 @@ of null values from the single family groupby dataframe.
 zest_zero_idx = norm_df.index[norm_df['zestimate']==0]
 rent_zero_idx = norm_df.index[norm_df['rentzestimate']==0]
 zero_idx = zest_zero_idx.append(rent_zero_idx)
-zeros = norm_df.loc[zero_idx]
 zero_df = norm_df.loc[set(norm_df.index) - set(zero_idx)]
 
 
@@ -405,10 +401,24 @@ Here we drop the unneeded columns for training our model:
 '''
 
 keep_cols =[col for col in dummy_df.columns if col not in ['zpid', 'percentile', 'street', 'city', 'state', 'taxAssessmentYear',
-                                                           'FIPScounty', 'yearBuilt', 'lastSoldDate', 'lastupdated', 'DISTRICT', 'school_count']]
+                                                           'FIPScounty', 'yearBuilt', 'lastSoldDate', 'lastupdated', 'DISTRICT', 
+                                                           'school_count']]
 
 X_train = dummy_df[keep_cols]
 X_train = X_train.dropna()
+
+# %% last few zero values in rent/zestimate
+rentzestimatezero = X_train.index[X_train['rentzestimate']==0]
+rentzeros = X_train.loc[rentzestimatezero]
+
+zestimatezero = X_train.index[X_train['zestimate']==0]
+zestimatezeros = X_train.loc[zestimatezero]
+
+zeros = rentzeros.append(zestimatezeros)
+X_train = X_train.loc[set(X_train.index) - set(zeros.index)]
+
+
+
 
 
 # %% Supervised Regression
@@ -430,48 +440,70 @@ To tune the lambda parameter we use cross-validation: divide training data,
 train model for some lambda, test on other half of data. Then repeat procedure
 while varying lambda to minimize the loss function.
 
+
+from torch.nn import Linear
+torch.manual_seed(1)
+- initializes random seed for our weights
+
+model = Linear(in_features=1, out_features=1)
+- for every input feature there is one output features (1 to 1)
+
+
 '''
 
+num_cols = 43
+data_columns = list(X_train.columns)
 
 
 
 
 
+# %% Define our model
+import torch
+import torch.nn as nn
 
 
+class LR(nn.Module):
+    def __init__(self, input_size, output_size):
+        super().__init__()
+        self.linear = nn.Linear(input_size, output_size)
+    
+    def forward(self, x):
+        pred = self.linear(x)
+        return pred
+    
+# %% Sample Training Model
+
+X = torch.randn(100, 1)*10
+y = X + 3*torch.randn(100, 1)
+plt.plot(X.numpy(), y.numpy(), 'o')
+
+plt.ylabel('y')
+plt.xlabel('x')
 
 
+torch.manual_seed(1)
+model = LR(1, 1)
+print(model)
 
+[w, b] = model.parameters()
 
+def get_params():
+    return (w[0][0].item(), b[0].item())
 
+def plot_fit(title):
+    plt.title = title
+    w1, b1 = get_params()
+    
+    x1 = np.array([-30, 30])
+    
+    #equation of a line
+    y1 = w1 * x1 + b1
+    plt.plot(x1, y1, 'r')
+    plt.scatter(X, y)
+    plt.show()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+plot_fit('Initial Model')
 
 
 

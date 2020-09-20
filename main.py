@@ -169,9 +169,9 @@ def fix_shp(prev_count, stop_limit):
             break
         zill = run_raw_address(house[1], house[0])
         new_awz = new_awz.append(zill, ignore_index=True)
-    print(new_awz.head())
-    os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
-    new_awz.to_csv('awz_%s_%s.csv'% (prev_count, count))
+    print(new_awz.tail())
+    os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/houses_compiled/')
+    new_awz.to_csv('awz_%s_%s.csv'% (prev_count, count), index=False)
     print('new count: ', count)
     return
         
@@ -179,17 +179,11 @@ def fix_shp(prev_count, stop_limit):
 if __name__=='__main__': 
     
     
-    #limit is 4500 (~13.5k calls)
-    
-    
-    
-    os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')
-    
-
+    #limit is 4500 (~13.5k calls)    
 
     
     
-    fix_shp(228659, 4500)
+    fix_shp(235772, 4500)
     
     
     
