@@ -12,6 +12,9 @@ from ml.kdtree import knearest_balltree
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
+import torch.nn as nn
+import math
+
 
 
 sns.set(style='whitegrid', palette='muted', font_scale=1)
@@ -34,8 +37,17 @@ Once pickled,
     buy or no buy = loaded_model.predict(address)
 
 SEPARATELY:
-    we render heatmap of less expensive properties in relation to their
-    attributes from current pickled houses object
+    we render heatmap of randomly picked, but spread out properties,
+    with all their features as well as crime density ratings/education ratings,
+    and then color gradient in terms of their under/overvalued rating
+    designated by the regression model. we pass these houses using
+    json to react in order to then mark it onto the mapbox map.
+    
+    
+    the mapbox map will have a side panel that pops up with all the information
+    about the house as you hover over it, and you can enter new houses
+    to see how they rate, and see it pop up onto the map in realtime.
+    
     
     current_houses = pickle.load(open('houses.pkl', 'rb'))
     
@@ -102,51 +114,6 @@ def normalize_df(df, cols):
     return result
 
 
-def rmse_loss(predictions: np.array, targets: np.array):
-    '''
-    Root Mean Squared Error Loss Function, aka L2 norm
-    RMSE = sqrt( avg(y - yhat)^2),
-    where y is the observed value and yhat is the prediction.
-    
-    Measures the average magnitude of error.
-    
-    RMSE minimizes the squared deviations and finds the *mean*
-    MAE minimizes the sum of absolute deviations resulting in the *median*
-    
-    
-    Either we use MAE to handle the outliers, or we divide the dataset
-    by zones/clusters, and run RMSE on each zone separately, as the
-    model for the Beverly Hills zipcode is going to be essentially useless
-    for the model for Northridge, and vice versa.
-    
-    Might be optimal for this particularly for finding good deals on houses.
-    
-    '''
-    diff = predictions - targets
-    diff_squared = np.square(diff)
-    mean_diff_squared = np.mean(diff_squared)
-    
-    rmse = np.sqrt(mean_diff_squared)
-    
-    return rmse
-
-def mae_loss(predictions, targets):
-    '''
-    Mean Absolute Loss Error Function, aka L1 norm
-    MAE = avg(abs(y - yhat))
-    
-    Also measures the average magnitude of error, but uses absolute value
-    to eliminate the direction of error. It also equally weights all data 
-    points. If we run the model on all the zones/clusters together, the
-    MAE will probably be optimal, and not be thrown off as much by the
-    massive outliers resultant from the wealth disparity in LA.
-    
-    '''
-    diff = predictions - targets
-    abs_diff = abs(diff)
-    
-    mae = np.mean(abs_diff)
-    return mae
    
 '''
 might want to use a combination of both loss functions to handle
@@ -310,7 +277,10 @@ to normalize the data.
 
 Crime density will be log normalized.
 
-zestimate, rentzestimate, taxAssessment, 
+TODO:
+    Save the min/max values for each column before normalization so that
+    future entries on the website can be normalized along the same range.
+
 
 '''
 norm_df = zero_df
@@ -324,7 +294,6 @@ norm_cols = ['rentzestimate', 'zestimate', 'lotSizeSqFt', 'low', 'high', 'zindex
              'bathrooms', 'bedrooms']
 
 norm_df = normalize_df(norm_df, norm_cols)
-
 
 
 
@@ -420,57 +389,129 @@ X_train = X_train.loc[set(X_train.index) - set(zeros.index)]
 
 
 
+# %% Define our model
+
+
+def rmse_loss(predictions: np.array, targets: np.array) -> np.array:
+    '''
+    Root Mean Squared Error Loss Function, aka L2 norm
+    RMSE = sqrt( avg(y - yhat)^2),
+    where y is the observed value and yhat is the prediction.
+    
+    Measures the average magnitude of error.
+    
+    RMSE minimizes the squared deviations and finds the *mean*
+    MAE minimizes the sum of absolute deviations resulting in the *median*
+    
+    
+    Either we use MAE to handle the outliers, or we divide the dataset
+    by zones/clusters, and run RMSE on each zone separately, as the
+    model for the Beverly Hills zipcode is going to be essentially useless
+    for the model for Northridge, and vice versa.
+    
+    Might be optimal for this particularly for finding good deals on houses.
+    
+    '''
+    diff = predictions - targets
+    diff_squared = np.square(diff)
+    mean_diff_squared = np.mean(diff_squared)
+    
+    rmse = np.sqrt(mean_diff_squared)
+    
+    return rmse
+
+def mae_loss(predictions: np.array, targets: np.array) -> np.array:
+    '''
+    Mean Absolute Loss Error Function, aka L1 norm
+    MAE = avg(abs(y - yhat))
+    
+    Also measures the average magnitude of error, but uses absolute value
+    to eliminate the direction of error. It also equally weights all data 
+    points. If we run the model on all the zones/clusters together, the
+    MAE will probably be optimal, and not be thrown off as much by the
+    massive outliers resultant from the wealth disparity in LA.
+    
+    '''
+    diff = predictions - targets
+    abs_diff = abs(diff)
+    
+    mae = np.mean(abs_diff)
+    return mae
+
+
+
+class LR(nn.Module):
+    '''
+    Defining a feed-forward neural net.
+    
+    '''
+    def __init__(self):
+        super().__init__()
+        #input layer has 43 columns, so 43 inputs
+        self.fc1 = nn.Linear(43, 10)
+        
+        #1 hidden layers, (10 - 10) each
+        self.fc2 = nn.Linear(10, 10)
+        
+        #output layer
+        self.fcout = nn.Linear(10, 1)
+        
+        #initialize weights for each layer to uniform non-zeros, and bias to zeros
+        nn.init.xavier_uniform_(self.fc1.weight)
+        nn.init.zeros_(self.fc1.bias)
+        
+        nn.init.xavier_uniform_(self.fc2.weight)
+        nn.init.zeros_(self.fc2.bias)
+        
+        nn.init.xavier_uniform_(self.fcout.weight)
+        nn.init.zeros_(self.fcout.bias)
+    
+    def forward(self, x):
+        #using ReLu activation function
+        y_pred = nn.ReLu(self.fc1(x))
+        y_pred = nn.ReLu(self.fc2(x))
+        y_pred = self.fcout(x)
+        
+        return y_pred
+    
+'''
+#create device object for cuda operations
+dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+#update preprocess to move batches to the GPU 
+def preprocess(x, y):
+    return x.view(-1, 1, 28, 28).to(dev), y.to(dev)
+
+#finally we move the model to the GPU (this must be done before setting any optimizers)
+model.to(dev)
+opt = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+
+then we can fit our model as usual.
+
+'''
+
+
 
 # %% Supervised Regression
 
 '''
-Using mean absolute error loss function
-
-error = mae_loss(predictions, target)
-
-Implement regularisation using lambda parameter.
-
-ie, Loss(y_hat, y) + lambda * N(w),
-
-where w is the weights vector of the loss function, and N(w) is the penalty function,
-restricting 
-Helps prevent overfitting.
 
 To tune the lambda parameter we use cross-validation: divide training data,
 train model for some lambda, test on other half of data. Then repeat procedure
 while varying lambda to minimize the loss function.
 
 
-from torch.nn import Linear
-torch.manual_seed(1)
-- initializes random seed for our weights
-
-model = Linear(in_features=1, out_features=1)
-- for every input feature there is one output features (1 to 1)
-
-
 '''
 
-num_cols = 43
-data_columns = list(X_train.columns)
 
 
+y = X_train['zestimate']
+x = X_train.drop(['rentzestimate', 'zestimate'], axis=1)
 
+x = torch.tensor(x.values, dtype=torch.float)
+y = torch.tensor(y.values, dtype=torch.float)
 
-
-# %% Define our model
-import torch
-import torch.nn as nn
-
-
-class LR(nn.Module):
-    def __init__(self, input_size, output_size):
-        super().__init__()
-        self.linear = nn.Linear(input_size, output_size)
-    
-    def forward(self, x):
-        pred = self.linear(x)
-        return pred
+print(x.shape, y.shape)
     
 # %% Sample Training Model
 
@@ -483,46 +524,33 @@ plt.xlabel('x')
 
 
 torch.manual_seed(1)
-model = LR(1, 1)
+model = LR(5, 2)
 print(model)
+x = model.parameters()
+print(next(x))
+print(next(x))
 
+print('assigning weights and bias')
 [w, b] = model.parameters()
 
-def get_params():
-    return (w[0][0].item(), b[0].item())
+print(w)
 
-def plot_fit(title):
-    plt.title = title
-    w1, b1 = get_params()
+# def get_params():
+#     return (w[0][0].item(), b[0].item())
+
+# def plot_fit(title):
+#     plt.title = title
+#     w1, b1 = get_params()
     
-    x1 = np.array([-30, 30])
+#     x1 = np.array([-30, 30])
     
-    #equation of a line
-    y1 = w1 * x1 + b1
-    plt.plot(x1, y1, 'r')
-    plt.scatter(X, y)
-    plt.show()
+#     #equation of a line
+#     y1 = w1 * x1 + b1
+#     plt.plot(x1, y1, 'r')
+#     plt.scatter(X, y)
+#     plt.show()
 
-plot_fit('Initial Model')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# plot_fit('Initial Model')
 
 
 
