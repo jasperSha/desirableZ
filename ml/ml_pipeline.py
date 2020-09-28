@@ -13,7 +13,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import math
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score
 
 
 
@@ -238,11 +241,15 @@ of null values from the single family groupby dataframe.
 
 
 
-# %% Cleaning zeros
+# %% Cleaning zeros and the Vacant Lots/Unknown use codes
 zest_zero_idx = norm_df.index[norm_df['zestimate']==0]
 rent_zero_idx = norm_df.index[norm_df['rentzestimate']==0]
-zero_idx = zest_zero_idx.append(rent_zero_idx)
-zero_df = norm_df.loc[set(norm_df.index) - set(zero_idx)]
+
+unknown = norm_df.index[norm_df['useCode']=='Unknown']
+vacant = norm_df.index[norm_df['useCode']=='VacantResidentialLand']
+
+unwanted_idx = zest_zero_idx.append([rent_zero_idx, unknown, vacant])
+zero_df = norm_df.loc[set(norm_df.index) - set(unwanted_idx)]
 
 
 
@@ -373,6 +380,8 @@ keep_cols =[col for col in dummy_df.columns if col not in ['zpid', 'percentile',
                                                            'FIPScounty', 'yearBuilt', 'lastSoldDate', 'lastupdated', 'DISTRICT', 
                                                            'school_count']]
 
+
+
 X_train = dummy_df[keep_cols]
 X_train = X_train.dropna()
 
@@ -385,7 +394,6 @@ zestimatezeros = X_train.loc[zestimatezero]
 
 zeros = rentzeros.append(zestimatezeros)
 X_train = X_train.loc[set(X_train.index) - set(zeros.index)]
-
 
 
 
@@ -440,21 +448,24 @@ def mae_loss(predictions: np.array, targets: np.array) -> np.array:
 
 
 
-class LR(nn.Module):
+class Net(nn.Module):
     '''
+    
     Defining a feed-forward neural net.
     
+    Linear Regression -> only one hidden layer as it's linear.
     '''
-    def __init__(self):
+    def __init__(self, D_in, D_out):
         super().__init__()
         #input layer has 43 columns, so 43 inputs
-        self.fc1 = nn.Linear(43, 10)
+        self.fc1 = nn.Linear(D_in, 100)
         
-        #1 hidden layers, (10 - 10) each
-        self.fc2 = nn.Linear(10, 10)
+        #1 hidden layers, (20 - 20) each
+        self.fc2 = nn.Linear(100, 100)
+        self.fc3 = nn.Linear(100, 100)
         
         #output layer
-        self.fcout = nn.Linear(10, 1)
+        self.fcout = nn.Linear(100, D_out)
         
         #initialize weights for each layer to uniform non-zeros, and bias to zeros
         nn.init.xavier_uniform_(self.fc1.weight)
@@ -463,36 +474,25 @@ class LR(nn.Module):
         nn.init.xavier_uniform_(self.fc2.weight)
         nn.init.zeros_(self.fc2.bias)
         
+        nn.init.xavier_uniform_(self.fc3.weight)
+        nn.init.zeros_(self.fc3.bias)
+        
         nn.init.xavier_uniform_(self.fcout.weight)
         nn.init.zeros_(self.fcout.bias)
     
     def forward(self, x):
         #using ReLu activation function
-        y_pred = nn.ReLu(self.fc1(x))
-        y_pred = nn.ReLu(self.fc2(x))
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+
         y_pred = self.fcout(x)
         
         return y_pred
     
-'''
-#create device object for cuda operations
-dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
-#update preprocess to move batches to the GPU 
-def preprocess(x, y):
-    return x.view(-1, 1, 28, 28).to(dev), y.to(dev)
-
-#finally we move the model to the GPU (this must be done before setting any optimizers)
-model.to(dev)
-opt = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-
-then we can fit our model as usual.
-
-'''
 
 
-
-# %% Supervised Regression
+# %% Convert to Tensors
 
 '''
 
@@ -500,57 +500,129 @@ To tune the lambda parameter we use cross-validation: divide training data,
 train model for some lambda, test on other half of data. Then repeat procedure
 while varying lambda to minimize the loss function.
 
+Using MSE loss instead of RMSE to prevent infinity output when autograd performs 
+the backward pass and attempts to derive sqrt at 0.
+
+We're using ReLu for our activation functions:
+    allows neurons to demonstrate stronger activation(whereas sigmoid the difference
+                                                      between a relatively weak 
+                                                      activation and a strong activation
+                                                      is more impactful)
+    less sensitive to random intiialization, vs sigmoid/tanh
+    easier to derive for our gradient descent
+    
+But for our output layer, we will use a linear activation function, as we are
+predicting a continuous value. So we don't want to be restricted in terms of
+the possible value outputs, we want the whole range to get the real difference
+between predicted/target.
+
+Stochastic Gradient Descent (maybe we can try RMSProp)
+
 
 '''
 
 
-
-y = X_train['zestimate']
+#using just the zestimate, or the Zillow estimated home value as our target variable 
+y_col = ['zestimate']
+y = pd.DataFrame(X_train, columns=y_col)
 x = X_train.drop(['rentzestimate', 'zestimate'], axis=1)
 
-x = torch.tensor(x.values, dtype=torch.float)
-y = torch.tensor(y.values, dtype=torch.float)
+x = torch.tensor(x.values, dtype=torch.Tensor)
+y = torch.tensor(y.values, dtype=torch.Tensor)
 
-print(x.shape, y.shape)
+
+
+# %%
+
+#43 columns
+D_in, D_out = x.shape[1], y.shape[1]
+lr = 1e-2
+epochs = 100
+
+#init model
+model = Net(D_in, D_out)
+
+#create device object for cuda operations
+dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+#finally we move the model to the GPU (this must be done before setting any optimizers)
+model.to(dev)
+
+#train and validation sets
+X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=10)
+
+#default reduction is 'mean' - loss is then independent of batch size
+criterion = nn.MSELoss()
+
+#set our optimizer=stochastic gradient descent
+opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+
+#load datasets for iterator and set our batch sizes
+train_set = torch.utils.data.TensorDataset(X_train, y_train)
+validation_set = torch.utils.data.TensorDataset(X_test, y_test)
+
+train_params = {'batch_size' : 64,
+                'shuffle' : True,
+                'num_workers' : 0}
+
+test_params = {'batch_size' : 64,
+               'shuffle' : False}
+
+train_iter = torch.utils.data.DataLoader(train_set, **train_params)
+validation_iter = torch.utils.data.DataLoader(validation_set, **test_params)
+
+losses = []
+val_losses = []
+running_loss = 0.0
+
+for epoch in range(epochs):
+    for x, y in train_iter:
+        
+        #transfer batch to gpu
+        x, y = x.to(dev), y.to(dev)
+        
+        #clear gradients
+        opt.zero_grad()
+        
+        #make prediction
+        y_pred = model(x)
+        
+        loss = criterion(y_pred, y)
+        
+        #backpropagation
+        loss.backward()
+        
+        #apply gradients found to our optimizer
+        opt.step()
+        
+        running_loss += loss.item()
+    print('Epoch:', epoch+1, 'loss:', running_loss)
+    running_loss = 0.0
+        
+
+# for x, y in validation_iter:
+#     print(x, y)
+
+# with torch.no_grad():
+#     for epoch in range(epochs):
+#         for x_test, y_test in validation_iter:
+#             x_test, y_test = x_test.to(dev), y_test.to(dev)
+            
+#             y_test_pred = model(x_test)
+#             loss = criterion(y_test_pred, y_test)
+            
+#             print('Actual:', y_test.item(), '\n', 'Predicted:', y_test_pred.item())
+#             print('loss:',loss.item(), '\n')
+            
     
-# %% Sample Training Model
-
-X = torch.randn(100, 1)*10
-y = X + 3*torch.randn(100, 1)
-plt.plot(X.numpy(), y.numpy(), 'o')
-
-plt.ylabel('y')
-plt.xlabel('x')
-
-
-torch.manual_seed(1)
-model = LR(5, 2)
-print(model)
-x = model.parameters()
-print(next(x))
-print(next(x))
-
-print('assigning weights and bias')
-[w, b] = model.parameters()
-
-print(w)
-
-# def get_params():
-#     return (w[0][0].item(), b[0].item())
-
-# def plot_fit(title):
-#     plt.title = title
-#     w1, b1 = get_params()
     
-#     x1 = np.array([-30, 30])
     
-#     #equation of a line
-#     y1 = w1 * x1 + b1
-#     plt.plot(x1, y1, 'r')
-#     plt.scatter(X, y)
-#     plt.show()
+    
 
-# plot_fit('Initial Model')
+
+
+
+
 
 
 
