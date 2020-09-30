@@ -17,6 +17,7 @@ import torch.nn.functional as F
 import math
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
+from sklearn.preprocessing import MinMaxScaler
 
 
 
@@ -259,8 +260,8 @@ zero_df = norm_df.loc[set(norm_df.index) - set(unwanted_idx)]
 '''
 numerical:
 crime_density -> log
-rentzestimate -> normal
-zestimate -> normal
+rentzestimate -> None (output)
+zestimate -> None (output)
 lotSizeSqFt -> normal
 low -> normal
 high -> normal
@@ -284,9 +285,7 @@ to normalize the data.
 
 Crime density will be log normalized.
 
-TODO:
-    Save the min/max values for each column before normalization so that
-    future entries on the website can be normalized along the same range.
+MinMaxScaler can be saved to apply to future data/tests.
 
 
 '''
@@ -296,11 +295,19 @@ norm_df = zero_df
 norm_df['crime_density'] = zero_df['crime_density'].apply(lambda x: x + 1)
 norm_df['crime_density'] = np.log(zero_df['crime_density'])
 
-norm_cols = ['rentzestimate', 'zestimate', 'lotSizeSqFt', 'low', 'high', 'zindexValue',
-             'finishedSqFt', 'taxAssessment', 'edu_rating', 'valueChange', 'lastSoldPrice',
-             'bathrooms', 'bedrooms']
+x_scaler = MinMaxScaler()
+y_scaler = MinMaxScaler()
 
-norm_df = normalize_df(norm_df, norm_cols)
+x_norm_cols = ['lotSizeSqFt', 'low', 'high', 'zindexValue',
+             'finishedSqFt', 'taxAssessment', 'edu_rating', 
+             'valueChange', 'lastSoldPrice','bathrooms', 'bedrooms']
+
+y_norm_cols = ['rentzestimate', 'zestimate']
+
+#create separate scalers for our dependent and independent variables
+norm_df[x_norm_cols] = x_scaler.fit_transform(norm_df[x_norm_cols])
+norm_df[y_norm_cols] = y_scaler.fit_transform(norm_df[y_norm_cols])
+
 
 
 
@@ -384,6 +391,10 @@ keep_cols =[col for col in dummy_df.columns if col not in ['zpid', 'percentile',
 
 X_train = dummy_df[keep_cols]
 X_train = X_train.dropna()
+
+
+
+
 
 # %% last few zero values in rent/zestimate
 rentzestimatezero = X_train.index[X_train['rentzestimate']==0]
@@ -527,8 +538,14 @@ y_col = ['zestimate']
 y = pd.DataFrame(X_train, columns=y_col)
 x = X_train.drop(['rentzestimate', 'zestimate'], axis=1)
 
-x = torch.tensor(x.values, dtype=torch.Tensor)
-y = torch.tensor(y.values, dtype=torch.Tensor)
+#preserve order of columns
+predictor_cols = x.columns
+
+
+
+x = torch.tensor(x.values, dtype=torch.float)
+y = torch.tensor(y.values, dtype=torch.float)
+
 
 
 
@@ -537,7 +554,7 @@ y = torch.tensor(y.values, dtype=torch.Tensor)
 #43 columns
 D_in, D_out = x.shape[1], y.shape[1]
 lr = 1e-2
-epochs = 100
+epochs = 1000
 
 #init model
 model = Net(D_in, D_out)
@@ -614,14 +631,44 @@ for epoch in range(epochs):
 #             print('Actual:', y_test.item(), '\n', 'Predicted:', y_test_pred.item())
 #             print('loss:',loss.item(), '\n')
             
-    
-    
-    
-    
+
+
+# %% Saving the model
+
+os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/model/')
+PATH = 'state_dict_model.pt'
+
+torch.save(model.state_dict(), PATH)
+
+
+# %% Test individual values
+
+
+
+#load model
+testmodel = Net(D_in, D_out)
+testmodel.load_state_dict(torch.load(PATH))
+testmodel.eval()
 
 
 
 
+#import api functions here
+
+
+
+#scale test input
+#x_scaler.transform(input.x)
+#y_scaler.transform(input.y)
+    
+
+
+
+#order columns using variable: predictor_cols
+
+
+
+#finally call model(x) -> compare with actual value
 
 
 
