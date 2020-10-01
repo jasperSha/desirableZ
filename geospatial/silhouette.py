@@ -535,6 +535,10 @@ For n_clusters= 14 The average silhouette score is:  0.40827149632348647
         
         
         
+if __name__ == '__main__':
+    pass
+
+
         
         
         

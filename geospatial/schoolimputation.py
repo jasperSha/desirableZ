@@ -157,7 +157,8 @@ def property_school_rating(zill_df: gpd.GeoDataFrame, full_schools: gpd.GeoDataF
 
 
 
-
+if __name__ == '__main__':
+    pass
 
 
 

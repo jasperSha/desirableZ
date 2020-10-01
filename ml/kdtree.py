@@ -151,6 +151,10 @@ def knearest_balltree(houses_df: gpd.GeoDataFrame, crime_mesh: gpd.GeoDataFrame,
     
     
     
+if __name__ == '__main__':
+    pass
+
+
     
     
     

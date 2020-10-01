@@ -262,7 +262,8 @@ def point_density(events: pd.DataFrame, coords: np.array, radius: float, gridsiz
 
 
 
-
+if __name__ == '__main__':
+    pass
 
 
 

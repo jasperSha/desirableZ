@@ -165,3 +165,7 @@ def centroidnp(arr):
 
 
 
+if __name__ == '__main__':
+    pass
+
+

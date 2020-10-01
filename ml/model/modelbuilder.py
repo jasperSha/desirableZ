@@ -1,24 +1,27 @@
 import os, sys
-import pandas as pd
-import numpy as np
 import time
 import glob
+import math
+
 import geopandas as gpd
 from shapely.wkt import loads
-import time
-from geospatial.to_wkt import to_wkt
-from geospatial.schoolimputation import assign_property_school_districts, school_imputation, property_school_rating
-from ml.kdtree import knearest_balltree
+import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import math
+
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import MinMaxScaler
 
+from geospatial.to_wkt import to_wkt
+# from geospatial.schoolimputation import assign_property_school_districts, school_imputation, property_school_rating
+from ml.kdtree import knearest_balltree
+from ml.model.neuralnet import Net
 
 
 sns.set(style='whitegrid', palette='muted', font_scale=1)
@@ -108,7 +111,6 @@ def add_schools():
 
 
 
-
 def normalize_df(df, cols):        
     result = df.copy()
     for feature_name in cols:
@@ -118,18 +120,107 @@ def normalize_df(df, cols):
     return result
 
 
-   
-'''
-might want to use a combination of both loss functions to handle
-bias-variance tradeoff in an optimal manner.
-'''
 
-# %% Update dataset
-combine_zillow_csv()
-add_schools()
 
+# %%
+    
+def check_collinearity(): 
+    # Use Code Groups
+    describe = houses_df.describe()
+    
+    districts = houses_df.groupby('useCode')
+    
+    
+    
+    condo = districts.get_group('Condominium')
+    coop = districts.get_group('Cooperative')
+    duplex = districts.get_group('Duplex')
+    miscellaneous = districts.get_group('Miscellaneous')
+    mobile = districts.get_group('Mobile')
+    familyTwotoFour = districts.get_group('MultiFamily2To4')
+    familyFivePlus = districts.get_group('MultiFamily5Plus')
+    quad = districts.get_group('Quadruplex')
+    townhouse = districts.get_group('Townhouse')
+    triplex = districts.get_group('Triplex')
+    unknown = districts.get_group('Unknown')
+    vacantresidential = districts.get_group('VacantResidentialLand')
+    
+    
+    #Modeling Single Family data
+    
+    
+    singlefam = districts.get_group('SingleFamily')
+    
+    #Cleaning Zeroes
+    zero_idx = singlefam.index[singlefam['zestimate']==0]
+    '''
+    Single Family Residences with a zestimate of 0. 
+    
+    Last Sold Price maybe more accurate indicator of home value, but for now
+    we'll just remove the zero valued zestimates. (only 123 of them)
+    '''
+    zerosinglefam = singlefam.loc[zero_idx]
+    singlefam = singlefam.loc[set(singlefam.index) - set(zero_idx)]
+    
+    
+    
+    describe = singlefam.describe()
+    # singlefam['rentzestimate'] = np.log(singlefam['rentzestimate'])
+    sns.distplot(singlefam['lastSoldPrice'])
+    
+    
+    #model against square footage
+    x_var = 'finishedSqFt'
+    data = pd.concat([singlefam['lastSoldPrice'], singlefam[x_var]], axis=1)
+    data.plot.scatter(x=x_var, y='lastSoldPrice', ylim=(0, 8000000))
+    
+    
+    
+    #general correlation heatmap
+    corr_matrix = singlefam.corr()
+    fig, ax = plt.subplots(figsize=(12, 9))
+    sns.heatmap(corr_matrix, vmax=.8, square=True)
+    
+    #check top 5 correlations
+    k = 10
+    cols = corr_matrix.nlargest(k, 'rentzestimate')['rentzestimate'].index
+    fig, ax = plt.subplots(figsize=(14, 10))
+    sns.heatmap(singlefam[cols].corr(), vmax=.8, square=True)
+    
+    
+    
+    
+    #Checking null data
+    total = norm_df.isnull().sum().sort_values(ascending=False)
+    percent = (norm_df.isnull().sum()/norm_df.isnull().count()).sort_values(ascending=False)
+    missing_data = pd.concat([total, percent], axis=1, keys=['Total', 'Percent'])
+    print(missing_data)
+    
+    '''
+    Missing data:
+                       Total   Percent
+    FIPScounty          2612  0.023418
+    rentzestimate        147  0.001318
+    valueChange           32  0.000287
+    lastSoldDate          10  0.000090
+    taxAssessmentYear      2  0.000018
+    lastupdated            1  0.000009
+    yearBuilt              1  0.000009
+    
+    
+    This missing data is negligible. Most of it will be cleared with the cleaning
+    of null values from the single family groupby dataframe.
+    
+    '''
+def update_data():
+    # Update dataset
+    combine_zillow_csv()
+    add_schools()
+    
+    
 
 # %% Read Zillow data
+
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data')
 zillow = pd.read_csv('fullzillow.csv')
 zill_gdf = gpd.GeoDataFrame(zillow, crs='EPSG:4326', geometry=zillow['geometry'].apply(loads))
@@ -149,97 +240,6 @@ houses_df = knearest_balltree(zill_gdf, cd_gdf, radius=1.1)
 
 #convert back to regular dataframe for pandas functions
 norm_df = pd.DataFrame(houses_df.drop(columns='geometry'))
-
-
-
-# %% Use Code Groups
-describe = houses_df.describe()
-
-districts = houses_df.groupby('useCode')
-
-
-
-condo = districts.get_group('Condominium')
-coop = districts.get_group('Cooperative')
-duplex = districts.get_group('Duplex')
-miscellaneous = districts.get_group('Miscellaneous')
-mobile = districts.get_group('Mobile')
-familyTwotoFour = districts.get_group('MultiFamily2To4')
-familyFivePlus = districts.get_group('MultiFamily5Plus')
-quad = districts.get_group('Quadruplex')
-townhouse = districts.get_group('Townhouse')
-triplex = districts.get_group('Triplex')
-unknown = districts.get_group('Unknown')
-vacantresidential = districts.get_group('VacantResidentialLand')
-
-
-# %% Modeling Single Family data
-
-
-singlefam = districts.get_group('SingleFamily')
-
-#Cleaning Zeroes
-zero_idx = singlefam.index[singlefam['zestimate']==0]
-'''
-Single Family Residences with a zestimate of 0. 
-
-Last Sold Price maybe more accurate indicator of home value, but for now
-we'll just remove the zero valued zestimates. (only 123 of them)
-'''
-zerosinglefam = singlefam.loc[zero_idx]
-singlefam = singlefam.loc[set(singlefam.index) - set(zero_idx)]
-
-
-
-describe = singlefam.describe()
-# singlefam['rentzestimate'] = np.log(singlefam['rentzestimate'])
-sns.distplot(singlefam['lastSoldPrice'])
-
-
-#model against square footage
-x_var = 'finishedSqFt'
-data = pd.concat([singlefam['lastSoldPrice'], singlefam[x_var]], axis=1)
-data.plot.scatter(x=x_var, y='lastSoldPrice', ylim=(0, 8000000))
-
-
-
-#general correlation heatmap
-corr_matrix = singlefam.corr()
-fig, ax = plt.subplots(figsize=(12, 9))
-sns.heatmap(corr_matrix, vmax=.8, square=True)
-
-#check top 5 correlations
-k = 10
-cols = corr_matrix.nlargest(k, 'rentzestimate')['rentzestimate'].index
-fig, ax = plt.subplots(figsize=(14, 10))
-sns.heatmap(singlefam[cols].corr(), vmax=.8, square=True)
-
-
-
-
-# %% Checking null data
-total = norm_df.isnull().sum().sort_values(ascending=False)
-percent = (norm_df.isnull().sum()/norm_df.isnull().count()).sort_values(ascending=False)
-missing_data = pd.concat([total, percent], axis=1, keys=['Total', 'Percent'])
-print(missing_data)
-
-'''
-Missing data:
-                   Total   Percent
-FIPScounty          2612  0.023418
-rentzestimate        147  0.001318
-valueChange           32  0.000287
-lastSoldDate          10  0.000090
-taxAssessmentYear      2  0.000018
-lastupdated            1  0.000009
-yearBuilt              1  0.000009
-
-
-This missing data is negligible. Most of it will be cleared with the cleaning
-of null values from the single family groupby dataframe.
-
-'''
-
 
 
 # %% Cleaning zeros and the Vacant Lots/Unknown use codes
@@ -408,99 +408,6 @@ X_train = X_train.loc[set(X_train.index) - set(zeros.index)]
 
 
 
-# %% Define our model
-
-
-def rmse_loss(predictions: np.array, targets: np.array) -> np.array:
-    '''
-    Root Mean Squared Error Loss Function, aka L2 norm
-    RMSE = sqrt( avg(y - yhat)^2),
-    where y is the observed value and yhat is the prediction.
-    
-    Measures the average magnitude of error.
-    
-    RMSE minimizes the squared deviations and finds the *mean*
-    MAE minimizes the sum of absolute deviations resulting in the *median*
-    
-    
-    Either we use MAE to handle the outliers, or we divide the dataset
-    by zones/clusters, and run RMSE on each zone separately, as the
-    model for the Beverly Hills zipcode is going to be essentially useless
-    for the model for Northridge, and vice versa.
-    
-    Might be optimal for this particularly for finding good deals on houses.
-    
-    '''
-    diff = predictions - targets
-    diff_squared = np.square(diff)
-    mean_diff_squared = np.mean(diff_squared)
-    
-    rmse = np.sqrt(mean_diff_squared)
-    
-    return rmse
-
-def mae_loss(predictions: np.array, targets: np.array) -> np.array:
-    '''
-    Mean Absolute Loss Error Function, aka L1 norm
-    MAE = avg(abs(y - yhat))
-    
-    Also measures the average magnitude of error, but uses absolute value
-    to eliminate the direction of error. It also equally weights all data 
-    points. If we run the model on all the zones/clusters together, the
-    MAE will probably be optimal, and not be thrown off as much by the
-    massive outliers resultant from the wealth disparity in LA.
-    
-    '''
-    diff = predictions - targets
-    abs_diff = abs(diff)
-    
-    mae = np.mean(abs_diff)
-    return mae
-
-
-
-class Net(nn.Module):
-    '''
-    
-    Defining a feed-forward neural net.
-    
-    Linear Regression -> only one hidden layer as it's linear.
-    '''
-    def __init__(self, D_in, D_out):
-        super().__init__()
-        #input layer has 43 columns, so 43 inputs
-        self.fc1 = nn.Linear(D_in, 100)
-        
-        #1 hidden layers, (20 - 20) each
-        self.fc2 = nn.Linear(100, 100)
-        self.fc3 = nn.Linear(100, 100)
-        
-        #output layer
-        self.fcout = nn.Linear(100, D_out)
-        
-        #initialize weights for each layer to uniform non-zeros, and bias to zeros
-        nn.init.xavier_uniform_(self.fc1.weight)
-        nn.init.zeros_(self.fc1.bias)
-        
-        nn.init.xavier_uniform_(self.fc2.weight)
-        nn.init.zeros_(self.fc2.bias)
-        
-        nn.init.xavier_uniform_(self.fc3.weight)
-        nn.init.zeros_(self.fc3.bias)
-        
-        nn.init.xavier_uniform_(self.fcout.weight)
-        nn.init.zeros_(self.fcout.bias)
-    
-    def forward(self, x):
-        #using ReLu activation function
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-
-        y_pred = self.fcout(x)
-        
-        return y_pred
-    
 
 
 # %% Convert to Tensors
@@ -632,6 +539,23 @@ for epoch in range(epochs):
 #             print('loss:',loss.item(), '\n')
             
 
+# %%
+'''
+need to save D_in, D_out, predictor_cols, model
+
+'''
+
+
+print(x.shape)
+
+print(x[0])
+
+
+
+# %% Compile model for use in Production
+
+model.eval()
+traced_model = torch.jit.trace(model, )
 
 # %% Saving the model
 
@@ -639,37 +563,5 @@ os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/model/')
 PATH = 'state_dict_model.pt'
 
 torch.save(model.state_dict(), PATH)
-
-
-# %% Test individual values
-
-
-
-#load model
-testmodel = Net(D_in, D_out)
-testmodel.load_state_dict(torch.load(PATH))
-testmodel.eval()
-
-
-
-
-#import api functions here
-
-
-
-#scale test input
-#x_scaler.transform(input.x)
-#y_scaler.transform(input.y)
-    
-
-
-
-#order columns using variable: predictor_cols
-
-
-
-#finally call model(x) -> compare with actual value
-
-
 
 
