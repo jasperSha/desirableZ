@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import pandas as pd
 import numpy as np
 import torch
@@ -9,9 +12,13 @@ from sklearn.preprocessing import MinMaxScaler
 
 from ml.kdtree import knearest_balltree
 
-from zestimate import get_zestimate
 from deepsearchresults import deep_search
 from ml.model.neuralnet import Net
+from zillowObject.zillowObject import House
+
+os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ')
+key = os.getenv('ZILLOW_API_KEY')
+
 
 # %%
 '''
@@ -30,10 +37,59 @@ pipe:
 '''
 
 
+#default property values
+propertyDefaults = {
+            'zpid':'',
+            'amount': 0, # property value (rent)
+            'valueChange': 0,
+                #30-day
+            'low': 0,
+            'high': 0,
+                #valuation range(low to high)
+            'percentile': 0,
+            'zindexValue': 0,
+
+            'last-updated': '',
+            'street': '',
+            'zipcode': '',
+            'city': '',
+            'state': '',
+            'latitude': '',
+            'longitude': '',
+
+            'FIPScounty': '',
+            'useCode': '', 
+                 #specifies type of home:
+                 #duplex, triplex, condo, mobile, timeshare, etc
+            'taxAssessmentYear': '',
+                #year of most recent tax assessment
+            'taxAssessment': 0,
+
+            'yearBuilt': '',
+            'lotSizeSqFt': 0,
+            'finishedSqFt': 0,
+            'bathrooms': 0,
+            'bedrooms': 0,
+            'lastSoldDate': '',
+            'lastSoldPrice': 0,
+            
+            
+        }
+'''
+one-hot encodings:
+    useCode
+    zipcode (first three digits)
+
+'''
+
+
+
+
+
+
 # %% API Call
-key = os.getenv('ZILLOW_API_KEY')
 
-
+zill = House(propertyDefaults)
 
 '''
 search function:
@@ -45,14 +101,15 @@ search function:
 #preapproved list of cities in LA county available for model
 la_county_cities = []
 
-
-house = {}
-
 street = '7101 Colbath Ave'
 city = 'Van Nuys CA'
 
-house = deep_search(key, city, street, house)
-house = get_zestimate(key, house[zpid], house)
+zill.street = street
+zill.city = city
+
+zill = deep_search(key, zill)
+
+zill = get_zestimate(key, zill.zpid, zill)
 
 
 # %% Append Schools and Crime data

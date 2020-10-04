@@ -13,7 +13,6 @@ KEYS:
 key = os.getenv('ZILLOW_API_KEY')
 
 
-from zillowObject import zillowObject
 from zestimate import get_zestimate
 from deepsearchresults import deep_search
 import pandas as pd

@@ -1,57 +1,52 @@
 import requests
 import xml.etree.ElementTree as ET
-#take zillowObject, update with zestimate specific attributes 
-#(requires zpid to access)
-def get_zestimate(key, zpid, zillowObject):
+
+def get_zestimate(key, zpid, House):
     try:
-        #property attributes unique to zestimate call
-        zestPropAttr = (
-                'amount',
-                'valueChange',
-                'low',
-                'high',
-                'percentile',
-                'zindexValue'
-                )
-        '''
-        first iteration grabbing the property ownership value
-        '''
-        
+
         url = 'https://www.zillow.com/webservice/GetZestimate.htm'
         parameters = {
             'zws-id':key,
-            'zpid':zpid,
-            'rentzestimate':False #necessary for rental value
-        }
-        response = requests.get(url,params = parameters)
-        root = ET.fromstring(response.content)
-        
-        # print("Grabbing zestimate attributes now...")
-        for category in zestPropAttr:
-            for child in root.iter('%s'%category):
-                zillowObject['%s'%category] = child.text
-        
-        zillowObject['zestimate'] = zillowObject['amount']
-        
-        del zillowObject['amount']
-      
-        '''
-        now adding property rental value
-        '''
-        parameters = {
-            'zws-id':key,
-            'zpid':zpid,
+            'zpid':House.zpid,
             'rentzestimate':True #necessary for rental value
         }
         response = requests.get(url,params = parameters)
         root = ET.fromstring(response.content)
         
-        for child in root.iter('amount'):
-            zillowObject['rentzestimate'] = child.text
-    
-        return zillowObject
+        # print("Grabbing zestimate attributes now...")
+        attribs = {}
+        for k in House.keys():
+            for child in root.iter('%s'%k):
+                attribs[k] = child.text
+        
+        #delineate between rent and total value
+        attribs['rentzestimate'] = attribs.pop('amount')
+        House['zestimate'] = House.pop('amount')
+        House.update(attribs)
+
+        return House
     except Exception as e:
         print(e)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         
 
