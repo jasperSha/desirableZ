@@ -141,15 +141,13 @@ def knearest_balltree(houses_df: gpd.GeoDataFrame, crime_mesh: gpd.GeoDataFrame,
     arr_sums = np.column_stack([arr_sums, zpids])
     
     sums_df = pd.DataFrame(arr_sums, columns=['crime_density', 'zpid'])
-    
     houses_df = houses_df.merge(sums_df, on='zpid', how='left')
     
     
     
     return houses_df
-    
-    
-    
+
+
     
 if __name__ == '__main__':
     pass

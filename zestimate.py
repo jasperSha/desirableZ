@@ -22,8 +22,12 @@ def get_zestimate(key, zpid, House):
         #delineate between rent and total value
         attribs['rentzestimate'] = attribs.pop('amount')
         House['zestimate'] = House.pop('amount')
+        
         House.update(attribs)
-
+        
+        House['zindexValue'] = str(House['zindexValue']).replace(',','')
+        House['lastupdated'] = House.pop('last-updated')
+        
         return House
     except Exception as e:
         print(e)

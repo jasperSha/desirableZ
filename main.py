@@ -74,10 +74,6 @@ def run_raw_address(citystatezip, address): #wrap into a function elsewhere?
             #zestimate call
             get_zestimate(key, zillowProperty['zpid'], zillowProperty) 
             
-            #clean formatting
-            zillowProperty['zindexValue'] = str(zillowProperty['zindexValue']).replace(',','')
-            zillowProperty['lastupdated'] = zillowProperty['last-updated']
-            del zillowProperty['last-updated']
             
             return zillowProperty
             #upload property to postgresql db
@@ -90,11 +86,7 @@ def run_raw_address(citystatezip, address): #wrap into a function elsewhere?
     except:
         print("address failure somewhere")
         
-        
-'''
-TODO:
-    build update function for zillow properties and compiling into shapefile
-'''        
+
 
 def retrieve_zpid(prev_index):
     os.chdir('/home/jaspersha/Projects/HeatMap/GeospatialData/compiled_heatmap_data/')

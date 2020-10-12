@@ -1,16 +1,18 @@
 import os
+import joblib
 from dotenv import load_dotenv
 load_dotenv()
 
 import pandas as pd
 import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 
-from ml.kdtree import knearest_balltree
 
 from deepsearchresults import deep_search
 from ml.model.neuralnet import Net
@@ -83,10 +85,6 @@ one-hot encodings:
 '''
 
 
-
-
-
-
 # %% API Call
 
 zill = House(propertyDefaults)
@@ -101,50 +99,49 @@ search function:
 #preapproved list of cities in LA county available for model
 la_county_cities = []
 
-street = '7101 Colbath Ave'
-city = 'Van Nuys CA'
-
-zill.street = street
-zill.city = city
-
-zill = deep_search(key, zill)
-
-zill = get_zestimate(key, zill.zpid, zill)
+address = { 'street' : '7101 Colbath Ave',
+            'city' : 'Van Nuys CA'}
 
 
-# %% Append Schools and Crime data
+zill.update(address)
 
-'''
-Right now, hardcoding D_in, D_out and predictor_cols
-'''
-
-D_in, D_out = 40, 1
-predictor_cols = ['bathrooms', 'bedrooms', 'finishedSqFt', 'high', 'lastSoldPrice',
-       'lotSizeSqFt', 'low', 'taxAssessment', 'valueChange', 'zindexValue',
-       'edu_rating', 'crime_density', 'Cooperative', 'Duplex', 'Miscellaneous',
-       'Mobile', 'MultiFamily2To4', 'MultiFamily5Plus', 'Quadruplex',
-       'SingleFamily', 'Townhouse', 'Triplex', '901.0', '902.0', '903.0',
-       '904.0', '905.0', '906.0', '907.0', '908.0', '910.0', '911.0', '912.0',
-       '913.0', '914.0', '915.0', '916.0', '917.0', '918.0', '935.0']
+zill.deep_search(key)
+zill.get_zestimate(key)
 
 
 
+# %% Add Crime, Schools
 
-#scale test input
-#x_scaler.transform(input.x)
-#y_scaler.transform(input.y)
-    
+crime_file = '/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/data/crime_density_rh_gridsize_1.csv'
+crime = pd.read_csv(crime_file)
+
+zill.get_crime_density(crime)
+
+schools_file = '/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/data/schools/schools.shp'
+districts_file = '/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/data/school_districts_bounds/School_District_Boundaries.shp'
+
+zill.add_schools(schools_file, districts_file)
 
 
+# %% Transform House to Scaler() from Model
 
-#order columns using variable: predictor_cols
+
+x_scaler = joblib.load('ml/data/x_scaler.gz')
+y_scaler = joblib.load('ml/data/y_scaler.gz')
+x_cols = joblib.load('ml/data/x_cols.pkl')
+y_cols = joblib.load('ml/data/y_cols.pkl')
+predictor_cols = joblib.load('ml/data/predictor_cols.pkl')
+
+zill_df = zill.transform(x_scaler, y_scaler, x_cols, y_cols, predictor_cols)
 
 
+# %% Convert to Tensor
 
 #finally call model(x) -> compare with actual value
 
-
-
+y_col = ['zestimate']
+y = pd.DataFrame(zill_df, columns=y_col)
+x = zill_df.drop(['rentzestimate', 'zestimate'], axis=1)
 
 
 

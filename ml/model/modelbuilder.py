@@ -2,6 +2,7 @@ import os, sys
 import time
 import glob
 import math
+import joblib
 
 import geopandas as gpd
 from shapely.wkt import loads
@@ -228,7 +229,7 @@ zill_gdf = gpd.GeoDataFrame(zillow, crs='EPSG:4326', geometry=zillow['geometry']
 
 
 # %% Read crime density and append to housing dataframe, then log normal of crime
-os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial')
+os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/data')
 #crime densities have not been normalized yet
 crime_density = pd.read_csv('crime_density_rh_gridsize_1.csv')
 cd_gdf = to_wkt(crime_density)
@@ -308,9 +309,16 @@ y_norm_cols = ['rentzestimate', 'zestimate']
 norm_df[x_norm_cols] = x_scaler.fit_transform(norm_df[x_norm_cols])
 norm_df[y_norm_cols] = y_scaler.fit_transform(norm_df[y_norm_cols])
 
+cwd = os.getcwd()
+os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
 
+joblib.dump(x_scaler, 'x_scaler.gz')
+joblib.dump(y_scaler, 'y_scaler.gz')
 
+joblib.dump(x_norm_cols, 'x_cols.pkl')
+joblib.dump(y_norm_cols, 'y_cols.pkl')
 
+os.chdir(cwd)
 
 # %% Creating dummy variables for useCode categories
 
@@ -448,7 +456,12 @@ x = X_train.drop(['rentzestimate', 'zestimate'], axis=1)
 #preserve order of columns
 predictor_cols = x.columns
 
+cwd = os.getcwd()
+os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
+joblib.dump(predictor_cols, 'predictor_cols.pkl')
+os.chdir(cwd)
 
+# %% Convert to Tensors
 
 x = torch.tensor(x.values, dtype=torch.float)
 y = torch.tensor(y.values, dtype=torch.float)
@@ -559,7 +572,7 @@ traced_model = torch.jit.trace(model, )
 
 # %% Saving the model
 
-os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/model/')
+os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
 PATH = 'state_dict_model.pt'
 
 torch.save(model.state_dict(), PATH)
