@@ -8,6 +8,10 @@ from shapely.geometry import Point
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
 
 from geospatial.to_wkt import to_wkt
 from geospatial.schoolimputation import property_school_rating
@@ -163,7 +167,7 @@ class House(MutableMapping):
         apply log normalization of crime density
         apply one-hot encoding for use code and zipcode
         
-        returns a pandas dataframe
+        sets member pandas dataframe
         '''
         self_df = self._to_df()
         
@@ -180,7 +184,6 @@ class House(MutableMapping):
         self_df[x_cols] = x_scaler.transform(self_df[x_cols])
         self_df[y_cols] = y_scaler.transform(self_df[y_cols])
         
-
         #apply crime log norm
         self_df['crime_density'] = self_df['crime_density'].apply(lambda x: x + 1)
         self_df['crime_density'] = np.log(self_df['crime_density'])
@@ -189,48 +192,41 @@ class House(MutableMapping):
         self_df['zipcode'] = self_df['zipcode'].apply(lambda x: x // 100)
         
         usecode = self_df['useCode'].iloc[0]
-        zipcode = str(self_df['zipcode'].iloc[0])
-        predict_df = self_df.reindex(labels=predictor_cols, axis=1, fill_value=0)
         
-        for col in predict_df.columns:
+        #zipcode one-hot encoding column names are string repr of floats (I need to fix this in modelbuilder)
+        zipcode = str(float(self_df['zipcode'].iloc[0]))
+        
+        #preserve dependent variables before reindexing with predictor columns
+        y_self_df = self_df[y_cols]
+        x_self_df = self_df.reindex(labels=predictor_cols, axis=1, fill_value=0)
+        
+        self_df = pd.concat([x_self_df, y_self_df], axis=1, join='inner').reset_index(drop=True)
+        
+        for col in self_df.columns:
             if (zipcode == col or usecode == col):
-                predict_df[col] = 1
-
-        return predict_df
+                self_df[col] = 1
+                
+        self._df = self_df
         
-    def toTensor(df):
+    def get_tensor(self, rent=False):
+        '''
+        Converts dependent and independent values to tensors.
+            - if rent -> dependent represents rentzestimate
+                 else -> dependent represents Zestimate
+        
+        Can only be executed AFTER transform(), both for normalization and
+        instantiation of dataframe member.
+        Keeps original dataframe.
+        '''
+        y_col = ['rentzestimate'] if rent else ['zestimate']
+        y = pd.DataFrame(self._df, columns=y_col)
+        x = self._df.drop(['rentzestimate', 'zestimate'], axis=1)
+        
+        x = torch.tensor(x.values, dtype=torch.float)
+        y = torch.tensor(y.values, dtype=torch.float)
+        
+        return x, y
         
         
         
-        
-        
-    
-    
-    
-
-
-        
-class School:
-    def __init__(self, categories):
-        for (key, value) in categories.items():
-            setattr(self, key, value)
-    def update(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-    def __setitem__(self, key, value):
-        self.__dict__[key] = value
-    def __getitem__(self, key):
-        return self.__dict__[key]
-    def __repr__(self):
-        return repr(self.__dict__)
-    def __len__(self):
-        return len(self.__dict__)
-    def __delitem__(self, key):
-        del self.__dict__[key]
-    def __iter__(self):
-        return iter(self.__dict__)
-    def clear(self):
-        return self.__dict__.clear()
-    def copy(self):
-        return self.__dict__.copy()
     

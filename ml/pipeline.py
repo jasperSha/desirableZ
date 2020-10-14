@@ -132,20 +132,16 @@ x_cols = joblib.load('ml/data/x_cols.pkl')
 y_cols = joblib.load('ml/data/y_cols.pkl')
 predictor_cols = joblib.load('ml/data/predictor_cols.pkl')
 
-zill_df = zill.transform(x_scaler, y_scaler, x_cols, y_cols, predictor_cols)
+zill.transform(x_scaler, y_scaler, x_cols, y_cols, predictor_cols)
 
 
 # %% Convert to Tensor
 
-#finally call model(x) -> compare with actual value
-
-y_col = ['zestimate']
-y = pd.DataFrame(zill_df, columns=y_col)
-x = zill_df.drop(['rentzestimate', 'zestimate'], axis=1)
-
+x_tensor, y_tensor = zill.get_tensor()
 
 
 # %% Loading the model
+D_in, D_out = x_tensor.shape[1], y_tensor.shape[1]
 
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/model/')
 PATH = 'state_dict_model.pt'

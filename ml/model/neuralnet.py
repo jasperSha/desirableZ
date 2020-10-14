@@ -58,7 +58,8 @@ class Net(nn.Module):
     
     Defining a feed-forward neural net.
     
-    Linear Regression -> only one hidden layer as it's linear.
+    NonLinear Regression - ReLu function introduces nonlinearity, outputs
+                           directly if positive, otherwise outputs zero.
     '''
     def __init__(self, D_in, D_out):
         super().__init__()
@@ -94,6 +95,8 @@ class Net(nn.Module):
         y_pred = self.fcout(x)
         
         return y_pred
+
+
 
 
 if __name__ == '__main__':

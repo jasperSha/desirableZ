@@ -297,26 +297,36 @@ norm_df['crime_density'] = zero_df['crime_density'].apply(lambda x: x + 1)
 norm_df['crime_density'] = np.log(zero_df['crime_density'])
 
 x_scaler = MinMaxScaler()
-y_scaler = MinMaxScaler()
+y_zest_scaler = MinMaxScaler()
+y_rent_scaler = MinMaxScaler()
 
 x_norm_cols = ['lotSizeSqFt', 'low', 'high', 'zindexValue',
              'finishedSqFt', 'taxAssessment', 'edu_rating', 
              'valueChange', 'lastSoldPrice','bathrooms', 'bedrooms']
 
-y_norm_cols = ['rentzestimate', 'zestimate']
-
-#create separate scalers for our dependent and independent variables
+#scaling our data for dependent and independent
 norm_df[x_norm_cols] = x_scaler.fit_transform(norm_df[x_norm_cols])
-norm_df[y_norm_cols] = y_scaler.fit_transform(norm_df[y_norm_cols])
+
+#keeping scalers for rent and zestimate separate
+zest_norm_col = ['zestimate']
+rent_norm_col = ['rentzestimate']
+
+norm_df[zest_norm_col] = y_zest_scaler.fit_transform(norm_df[zest_norm_col])
+norm_df[rent_norm_col] = y_rent_scaler.fit_transform(norm_df[rent_norm_col])
+
 
 cwd = os.getcwd()
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
 
+#save scalers for user pipeline
 joblib.dump(x_scaler, 'x_scaler.gz')
-joblib.dump(y_scaler, 'y_scaler.gz')
+joblib.dump(y_zest_scaler, 'y_zest_scaler.gz')
+joblib.dump(y_rent_scaler, 'y_rent_scaler.gz')
 
+#save columns for user pipeline
 joblib.dump(x_norm_cols, 'x_cols.pkl')
-joblib.dump(y_norm_cols, 'y_cols.pkl')
+joblib.dump(zest_norm_col, 'zest_col.pkl')
+joblib.dump(rent_norm_col, 'rent_col.pkl')
 
 os.chdir(cwd)
 
@@ -449,8 +459,12 @@ Stochastic Gradient Descent (maybe we can try RMSProp)
 
 
 #using just the zestimate, or the Zillow estimated home value as our target variable 
-y_col = ['zestimate']
-y = pd.DataFrame(X_train, columns=y_col)
+y_zest_col = ['zestimate']
+
+#saving rent column
+y_rent_col = ['rentzestimate']
+
+y = pd.DataFrame(X_train, columns=y_zest_col)
 x = X_train.drop(['rentzestimate', 'zestimate'], axis=1)
 
 #preserve order of columns
@@ -468,8 +482,7 @@ y = torch.tensor(y.values, dtype=torch.float)
 
 
 
-
-# %%
+# %% NonLinear Regression (Using ReLu)
 
 #43 columns
 D_in, D_out = x.shape[1], y.shape[1]
@@ -496,6 +509,7 @@ opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 
 #load datasets for iterator and set our batch sizes
 train_set = torch.utils.data.TensorDataset(X_train, y_train)
+
 validation_set = torch.utils.data.TensorDataset(X_test, y_test)
 
 train_params = {'batch_size' : 64,
@@ -505,15 +519,26 @@ train_params = {'batch_size' : 64,
 test_params = {'batch_size' : 64,
                'shuffle' : False}
 
+#training set
 train_iter = torch.utils.data.DataLoader(train_set, **train_params)
+
+#testing set
 validation_iter = torch.utils.data.DataLoader(validation_set, **test_params)
 
 losses = []
 val_losses = []
+
 running_loss = 0.0
+validation_loss = 0.0
+
+y_hat, y_loss = [], []
+
 
 for epoch in range(epochs):
     for x, y in train_iter:
+        
+        #set model to training mode (default)
+        model.train()
         
         #transfer batch to gpu
         x, y = x.to(dev), y.to(dev)
@@ -532,25 +557,40 @@ for epoch in range(epochs):
         #apply gradients found to our optimizer
         opt.step()
         
+        #store loss
         running_loss += loss.item()
-    print('Epoch:', epoch+1, 'loss:', running_loss)
+    with torch.no_grad():
+        for x_val, y_val in validation_iter:
+            model.eval()
+            x_val, y_val = x.to(dev), y.to(dev)
+            
+            y_pred = model(x_val)
+            
+            val_loss = criterion(y_pred, y_val)
+            
+            validation_loss += val_loss.item()
+            
+            #add prediction, loss for rescaling for readable loss
+            y_hat.append(y_pred)
+            y_loss.append(val_loss.item())
+
+            
+    print('Epoch:', epoch+1, 'loss:', running_loss, 'validation loss:', validation_loss)
     running_loss = 0.0
-        
+    validation_loss = 0.0
 
-# for x, y in validation_iter:
-#     print(x, y)
 
-# with torch.no_grad():
-#     for epoch in range(epochs):
-#         for x_test, y_test in validation_iter:
-#             x_test, y_test = x_test.to(dev), y_test.to(dev)
-            
-#             y_test_pred = model(x_test)
-#             loss = criterion(y_test_pred, y_test)
-            
-#             print('Actual:', y_test.item(), '\n', 'Predicted:', y_test_pred.item())
-#             print('loss:',loss.item(), '\n')
-            
+y_loss = y_zest_scaler.inverse_transform(np.reshape(y_loss, (-1, 2)))
+y_hat = [x.cpu() for x in y_hat]
+y_hat = [x.numpy() for x in y_hat]
+# y_hat = y_zest_scaler.inverse_transform(np.reshape(y_hat, (-1, 2)))
+
+# pred_loss_df = pd.DataFrame(np.column_stack([y_hat, y_loss]),columns=['y_hat', 'y_loss'])
+
+
+# pred_loss_df['y_loss'] = y_zest_scaler.reverse_transform(pred_loss_df['y_loss'])
+
+     
 
 # %%
 '''
