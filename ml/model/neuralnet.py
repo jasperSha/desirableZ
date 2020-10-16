@@ -61,17 +61,18 @@ class Net(nn.Module):
     NonLinear Regression - ReLu function introduces nonlinearity, outputs
                            directly if positive, otherwise outputs zero.
     '''
-    def __init__(self, D_in, D_out):
+    def __init__(self, D_in, D_out, L1, L2, L3, L4):
         super().__init__()
         #input layer has 43 columns, so 43 inputs
-        self.fc1 = nn.Linear(D_in, 100)
+        self.fc1 = nn.Linear(D_in, L1)
         
         #1 hidden layers, (20 - 20) each
-        self.fc2 = nn.Linear(100, 100)
-        self.fc3 = nn.Linear(100, 100)
+        self.fc2 = nn.Linear(L1, L2)
+        self.fc3 = nn.Linear(L2, L3)
+        self.fc4 = nn.Linear(L3, L4)
         
         #output layer
-        self.fcout = nn.Linear(100, D_out)
+        self.fcout = nn.Linear(L4, D_out)
         
         #initialize weights for each layer to uniform non-zeros, and bias to zeros
         nn.init.xavier_uniform_(self.fc1.weight)
@@ -83,6 +84,9 @@ class Net(nn.Module):
         nn.init.xavier_uniform_(self.fc3.weight)
         nn.init.zeros_(self.fc3.bias)
         
+        nn.init.xavier_uniform_(self.fc4.weight)
+        nn.init.zeros_(self.fc4.bias)
+        
         nn.init.xavier_uniform_(self.fcout.weight)
         nn.init.zeros_(self.fcout.bias)
     
@@ -91,6 +95,7 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
 
         y_pred = self.fcout(x)
         

@@ -155,20 +155,30 @@ class House(MutableMapping):
         _self_gdf = property_school_rating(_self_joined_districts_gdf, schools_df)
         
         edu_rating = _self_gdf['edu_rating'].iloc[0]
-        school_count = _self_gdf['school_count'].iloc[0]
         
         school_attrib = { 'edu_rating' : edu_rating }
         
         self._values.update(school_attrib)
 
-    def transform(self, x_scaler, y_scaler, x_cols, y_cols, predictor_cols):
+    def transform(self, x_scaler, y_scaler, x_cols, y_col, predictor_cols):
         '''
         apply scaling from trained data set,
         apply log normalization of crime density
         apply one-hot encoding for use code and zipcode
         
+        if passing rent column, set member variable _rent = True,
+        so that converting to Tensor function will drop the appropriate
+        column from dataframe
+        
         sets member pandas dataframe
+        
         '''
+        
+        if y_col == ['rentzestimate']:
+            self._rent = True
+        else:
+            self._rent = False
+            
         self_df = self._to_df()
         
         #api returns as strings, converting to float for scaling
@@ -182,7 +192,7 @@ class House(MutableMapping):
         
         #apply model scaling
         self_df[x_cols] = x_scaler.transform(self_df[x_cols])
-        self_df[y_cols] = y_scaler.transform(self_df[y_cols])
+        self_df[y_col] = y_scaler.transform(self_df[y_col])
         
         #apply crime log norm
         self_df['crime_density'] = self_df['crime_density'].apply(lambda x: x + 1)
@@ -197,7 +207,7 @@ class House(MutableMapping):
         zipcode = str(float(self_df['zipcode'].iloc[0]))
         
         #preserve dependent variables before reindexing with predictor columns
-        y_self_df = self_df[y_cols]
+        y_self_df = self_df[y_col]
         x_self_df = self_df.reindex(labels=predictor_cols, axis=1, fill_value=0)
         
         self_df = pd.concat([x_self_df, y_self_df], axis=1, join='inner').reset_index(drop=True)
@@ -208,7 +218,7 @@ class House(MutableMapping):
                 
         self._df = self_df
         
-    def get_tensor(self, rent=False):
+    def get_tensor(self):
         '''
         Converts dependent and independent values to tensors.
             - if rent -> dependent represents rentzestimate
@@ -218,9 +228,10 @@ class House(MutableMapping):
         instantiation of dataframe member.
         Keeps original dataframe.
         '''
-        y_col = ['rentzestimate'] if rent else ['zestimate']
+        
+        y_col = ['rentzestimate'] if self._rent else ['zestimate']
         y = pd.DataFrame(self._df, columns=y_col)
-        x = self._df.drop(['rentzestimate', 'zestimate'], axis=1)
+        x = self._df.drop(y_col, axis=1)
         
         x = torch.tensor(x.values, dtype=torch.float)
         y = torch.tensor(y.values, dtype=torch.float)

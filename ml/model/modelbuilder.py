@@ -242,8 +242,7 @@ houses_df = knearest_balltree(zill_gdf, cd_gdf, radius=1.1)
 #convert back to regular dataframe for pandas functions
 norm_df = pd.DataFrame(houses_df.drop(columns='geometry'))
 
-
-# %% Cleaning zeros and the Vacant Lots/Unknown use codes
+# Cleaning zeros and the Vacant Lots/Unknown use codes
 zest_zero_idx = norm_df.index[norm_df['zestimate']==0]
 rent_zero_idx = norm_df.index[norm_df['rentzestimate']==0]
 
@@ -253,10 +252,7 @@ vacant = norm_df.index[norm_df['useCode']=='VacantResidentialLand']
 unwanted_idx = zest_zero_idx.append([rent_zero_idx, unknown, vacant])
 zero_df = norm_df.loc[set(norm_df.index) - set(unwanted_idx)]
 
-
-
-
-# %% Scaling the data
+# Scaling the data
 
 '''
 numerical:
@@ -314,7 +310,7 @@ rent_norm_col = ['rentzestimate']
 norm_df[zest_norm_col] = y_zest_scaler.fit_transform(norm_df[zest_norm_col])
 norm_df[rent_norm_col] = y_rent_scaler.fit_transform(norm_df[rent_norm_col])
 
-
+# %% Preserve Scalers, Column order
 cwd = os.getcwd()
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
 
@@ -369,7 +365,7 @@ but address groups/delivery routes. Thus they can geographically overlap.
 Although the first digit isn't necessarily relevant now, as all our test data
 is contained within Los Angeles, CA, we'll keep it for sake of posterity/scaleability.
 We'll keep the 2nd and 3rd as well for denotation of a decently sized distribution 
-zone, and we'll leave the last two so that our granularity is not TOO fine.
+zone, and we'll remove the last two so that our granularity is not TOO fine.
 
 One-hot encoding will be used for the first three codes.
 
@@ -381,8 +377,7 @@ zips_df['zipcode'] = zips_df['zipcode'].apply(lambda x: x //100)
 dummy_df = pd.get_dummies(zips_df, columns=['useCode', 'zipcode'], drop_first=True, prefix='', prefix_sep='')
 
 
-
-# %% Final Cleaning of dataframe of unnecessary columns
+# Final Cleaning of dataframe of unnecessary columns
 
 '''
 Here we drop the unneeded columns for training our model:
@@ -406,29 +401,24 @@ keep_cols =[col for col in dummy_df.columns if col not in ['zpid', 'percentile',
                                                            'school_count']]
 
 
+x_df = dummy_df[keep_cols]
+x_df = x_df.dropna()
 
-X_train = dummy_df[keep_cols]
-X_train = X_train.dropna()
+# last few zero values in rent/zestimate
+rentzestimatezero = x_df.index[x_df['rentzestimate']==0]
+rentzeros = x_df.loc[rentzestimatezero]
 
-
-
-
-
-# %% last few zero values in rent/zestimate
-rentzestimatezero = X_train.index[X_train['rentzestimate']==0]
-rentzeros = X_train.loc[rentzestimatezero]
-
-zestimatezero = X_train.index[X_train['zestimate']==0]
-zestimatezeros = X_train.loc[zestimatezero]
+zestimatezero = x_df.index[x_df['zestimate']==0]
+zestimatezeros = x_df.loc[zestimatezero]
 
 zeros = rentzeros.append(zestimatezeros)
-X_train = X_train.loc[set(X_train.index) - set(zeros.index)]
+x_df = x_df.loc[set(x_df.index) - set(zeros.index)]
 
 
 
 
 
-# %% Convert to Tensors
+# %% Split Independent and Dependent
 
 '''
 
@@ -464,10 +454,14 @@ y_zest_col = ['zestimate']
 #saving rent column
 y_rent_col = ['rentzestimate']
 
-y = pd.DataFrame(X_train, columns=y_zest_col)
-x = X_train.drop(['rentzestimate', 'zestimate'], axis=1)
 
-#preserve order of columns
+y = pd.DataFrame(x_df, columns=y_zest_col)
+x = x_df.drop(['rentzestimate', 'zestimate'], axis=1)
+
+x, y = x.astype(np.float32), y.astype(np.float32)
+
+
+# %% Preserve order of columns
 predictor_cols = x.columns
 
 cwd = os.getcwd()
@@ -475,37 +469,53 @@ os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
 joblib.dump(predictor_cols, 'predictor_cols.pkl')
 os.chdir(cwd)
 
-# %% Convert to Tensors
 
-x = torch.tensor(x.values, dtype=torch.float)
-y = torch.tensor(y.values, dtype=torch.float)
+# %% Convert to Tensors, Set Hyperparameters
+'''
+Notes:
+    When scaling batch sizes by k, scale learning rate linearly along with them (multiply by k)
+    
+'''
 
+#force memory deallocation
+torch.cuda.empty_cache()
+x_tensor = None
+y_tensor = None
 
-
-# %% NonLinear Regression (Using ReLu)
+#note: use from_numpy(), using torch.tensor does conversion inplace, inconvenient for testing
+x_tensor = torch.from_numpy(x.values)
+y_tensor = torch.from_numpy(y.values)
 
 #43 columns
-D_in, D_out = x.shape[1], y.shape[1]
-lr = 1e-2
-epochs = 1000
+D_in, D_out = x_tensor.shape[1], y_tensor.shape[1]
 
-#init model
-model = Net(D_in, D_out)
+#Hyperparameters
+lr = .08 # optimal learning rate for batch size of 64
+# lr = .01 # optimal learning rate for batch size 32
+epochs = 100
+L1, L2, L3, L4 = 2000, 2000, 2000, 2000
+
+
+# %%Init model, optimizer
+model = Net(D_in, D_out, L1, L2, L3, L4)
 
 #create device object for cuda operations
 dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-#finally we move the model to the GPU (this must be done before setting any optimizers)
+#move to GPU (this must be done before setting any optimizers)
 model.to(dev)
-
-#train and validation sets
-X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=10)
 
 #default reduction is 'mean' - loss is then independent of batch size
 criterion = nn.MSELoss()
 
 #set our optimizer=stochastic gradient descent
-opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+opt = torch.optim.Adam(model.parameters(), lr=lr)
+
+# %% Split and Set DataLoader
+
+#train and validation sets
+X_train, X_test, y_train, y_test = train_test_split(x_tensor, y_tensor, test_size=0.2, random_state=5)
+
 
 #load datasets for iterator and set our batch sizes
 train_set = torch.utils.data.TensorDataset(X_train, y_train)
@@ -514,6 +524,7 @@ validation_set = torch.utils.data.TensorDataset(X_test, y_test)
 
 train_params = {'batch_size' : 64,
                 'shuffle' : True,
+                'pin_memory' : True,
                 'num_workers' : 0}
 
 test_params = {'batch_size' : 64,
@@ -525,13 +536,16 @@ train_iter = torch.utils.data.DataLoader(train_set, **train_params)
 #testing set
 validation_iter = torch.utils.data.DataLoader(validation_set, **test_params)
 
+# %%  Training Loop
+torch.backends.cudnn.benchmark=True
+
 losses = []
 val_losses = []
 
 running_loss = 0.0
 validation_loss = 0.0
 
-y_hat, y_loss = [], []
+y_hat, y_actual = [], []
 
 
 for epoch in range(epochs):
@@ -539,7 +553,7 @@ for epoch in range(epochs):
         
         #set model to training mode (default)
         model.train()
-        
+
         #transfer batch to gpu
         x, y = x.to(dev), y.to(dev)
         
@@ -559,44 +573,48 @@ for epoch in range(epochs):
         
         #store loss
         running_loss += loss.item()
+        losses.append(running_loss)
+        
     with torch.no_grad():
         for x_val, y_val in validation_iter:
+            
             model.eval()
-            x_val, y_val = x.to(dev), y.to(dev)
+            x_val, y_val = x_val.to(dev), y_val.to(dev)
             
             y_pred = model(x_val)
             
             val_loss = criterion(y_pred, y_val)
             
             validation_loss += val_loss.item()
+            val_losses.append(validation_loss)
             
-            #add prediction, loss for rescaling for readable loss
-            y_hat.append(y_pred)
-            y_loss.append(val_loss.item())
-
-            
+        
     print('Epoch:', epoch+1, 'loss:', running_loss, 'validation loss:', validation_loss)
     running_loss = 0.0
     validation_loss = 0.0
 
 
-y_loss = y_zest_scaler.inverse_transform(np.reshape(y_loss, (-1, 2)))
-y_hat = [x.cpu() for x in y_hat]
-y_hat = [x.numpy() for x in y_hat]
-# y_hat = y_zest_scaler.inverse_transform(np.reshape(y_hat, (-1, 2)))
 
-# pred_loss_df = pd.DataFrame(np.column_stack([y_hat, y_loss]),columns=['y_hat', 'y_loss'])
+# %%
 
 
-# pred_loss_df['y_loss'] = y_zest_scaler.reverse_transform(pred_loss_df['y_loss'])
+# y_actual = y_rent_scaler.inverse_transform(np.reshape(y_actual, (-1, 4)))
 
-     
+# y_hat = [x.cpu() for x in y_hat]
+# y_hat = [x.numpy() for x in y_hat]
+# y_hat = y_rent_scaler.inverse_transform(np.reshape(y_hat, (-1, 4)))
+
+
+
+
+
 
 # %%
 '''
 need to save D_in, D_out, predictor_cols, model
 
 '''
+model.eval()
 
 
 print(x.shape)

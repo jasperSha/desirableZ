@@ -126,30 +126,50 @@ zill.add_schools(schools_file, districts_file)
 # %% Transform House to Scaler() from Model
 
 
-x_scaler = joblib.load('ml/data/x_scaler.gz')
-y_scaler = joblib.load('ml/data/y_scaler.gz')
-x_cols = joblib.load('ml/data/x_cols.pkl')
-y_cols = joblib.load('ml/data/y_cols.pkl')
-predictor_cols = joblib.load('ml/data/predictor_cols.pkl')
+_x_scaler = joblib.load('ml/data/x_scaler.gz')
+_y_rent_scaler = joblib.load('ml/data/y_rent_scaler.gz')
+_y_zest_scaler = joblib.load('ml/data/y_zest_scaler.gz')
 
-zill.transform(x_scaler, y_scaler, x_cols, y_cols, predictor_cols)
+_x_cols = joblib.load('ml/data/x_cols.pkl')
+_y_rent_col = joblib.load('ml/data/rent_col.pkl')
+_y_zest_col = joblib.load('ml/data/zest_col.pkl')
+
+_predictor_cols = joblib.load('ml/data/predictor_cols.pkl')
+
+zill.transform(_x_scaler, _y_rent_scaler, _x_cols, _y_rent_col, _predictor_cols)
+
+
 
 
 # %% Convert to Tensor
 
-x_tensor, y_tensor = zill.get_tensor()
+_x_tensor, _y_tensor = zill.get_tensor()
+
+# %%
+
+model.eval()
+
+y_pred = model(_x_tensor)
+
+val_loss = criterion(y_pred, y_tensor)
 
 
 # %% Loading the model
 D_in, D_out = x_tensor.shape[1], y_tensor.shape[1]
 
-os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/model/')
+os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
 PATH = 'state_dict_model.pt'
 
+#create device object for cuda operations
+dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
 #load model
-model = Net(D_in, D_out)
-model.load_state_dict(torch.load(PATH))
-model.eval()
+test_model = Net(D_in, D_out, L1, L2, L3, L4)
+
+test_model.load_state_dict(torch.load(PATH))
 
 
+test_model.eval()
+
+y_pred = test_model(x_tensor)
 
