@@ -13,7 +13,6 @@ import seaborn as sns
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
@@ -252,7 +251,7 @@ vacant = norm_df.index[norm_df['useCode']=='VacantResidentialLand']
 unwanted_idx = zest_zero_idx.append([rent_zero_idx, unknown, vacant])
 zero_df = norm_df.loc[set(norm_df.index) - set(unwanted_idx)]
 
-# Scaling the data
+# %% Scaling the data
 
 '''
 numerical:
@@ -490,9 +489,9 @@ y_tensor = torch.from_numpy(y.values)
 D_in, D_out = x_tensor.shape[1], y_tensor.shape[1]
 
 #Hyperparameters
-lr = .08 # optimal learning rate for batch size of 64
+lr = .008 # optimal learning rate for batch size of 64
 # lr = .01 # optimal learning rate for batch size 32
-epochs = 100
+epochs = 500
 L1, L2, L3, L4 = 2000, 2000, 2000, 2000
 
 
@@ -508,13 +507,13 @@ model.to(dev)
 #default reduction is 'mean' - loss is then independent of batch size
 criterion = nn.MSELoss()
 
-#set our optimizer=stochastic gradient descent
+#set our optimizer=Adam
 opt = torch.optim.Adam(model.parameters(), lr=lr)
 
 # %% Split and Set DataLoader
 
 #train and validation sets
-X_train, X_test, y_train, y_test = train_test_split(x_tensor, y_tensor, test_size=0.2, random_state=5)
+X_train, X_test, y_train, y_test = train_test_split(x_tensor, y_tensor, test_size=0.2, random_state=50)
 
 
 #load datasets for iterator and set our batch sizes
@@ -536,9 +535,13 @@ train_iter = torch.utils.data.DataLoader(train_set, **train_params)
 #testing set
 validation_iter = torch.utils.data.DataLoader(validation_set, **test_params)
 
+
 # %%  Training Loop
 torch.backends.cudnn.benchmark=True
 
+#resetting iterators for tests
+x = None
+y = None
 losses = []
 val_losses = []
 
@@ -617,10 +620,6 @@ need to save D_in, D_out, predictor_cols, model
 model.eval()
 
 
-print(x.shape)
-
-print(x[0])
-
 
 
 # %% Compile model for use in Production
@@ -631,8 +630,8 @@ traced_model = torch.jit.trace(model, )
 # %% Saving the model
 
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
-PATH = 'state_dict_model.pt'
+FILENAME = 'state_dict_model.pt'
 
-torch.save(model.state_dict(), PATH)
+torch.save(model.state_dict(), FILENAME)
 
 

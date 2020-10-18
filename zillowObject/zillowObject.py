@@ -2,10 +2,13 @@ from collections.abc import MutableMapping
 import requests
 import xml.etree.ElementTree as ET
 import joblib
+
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
 from sklearn.preprocessing import MinMaxScaler
+
+import math
 import numpy as np
 
 import torch
@@ -190,6 +193,7 @@ class House(MutableMapping):
         
         self_df[str_to_float_cols] = self_df[str_to_float_cols].apply(pd.to_numeric)
         
+        
         #apply model scaling
         self_df[x_cols] = x_scaler.transform(self_df[x_cols])
         self_df[y_col] = y_scaler.transform(self_df[y_col])
@@ -201,6 +205,7 @@ class House(MutableMapping):
         #reduce zipcode to first 3 digits
         self_df['zipcode'] = self_df['zipcode'].apply(lambda x: x // 100)
         
+        #mark one-hot for use code
         usecode = self_df['useCode'].iloc[0]
         
         #zipcode one-hot encoding column names are string repr of floats (I need to fix this in modelbuilder)
@@ -215,7 +220,11 @@ class House(MutableMapping):
         for col in self_df.columns:
             if (zipcode == col or usecode == col):
                 self_df[col] = 1
-                
+        
+        #hacky way to impute for NaN ValueChange
+        if math.isnan(self_df['valueChange']):
+            self_df['valueChange'] = (self_df['low'].iloc[0] + self_df['high'].iloc[0]) / 2.0
+        
         self._df = self_df
         
     def get_tensor(self):

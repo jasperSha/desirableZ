@@ -8,7 +8,6 @@ import numpy as np
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
@@ -77,12 +76,6 @@ propertyDefaults = {
             
             
         }
-'''
-one-hot encodings:
-    useCode
-    zipcode (first three digits)
-
-'''
 
 
 # %% API Call
@@ -99,8 +92,8 @@ search function:
 #preapproved list of cities in LA county available for model
 la_county_cities = []
 
-address = { 'street' : '7101 Colbath Ave',
-            'city' : 'Van Nuys CA'}
+address = { 'street' : '8515 Rubio Ave',
+            'city' : 'North Hills CA'}
 
 
 zill.update(address)
@@ -123,7 +116,7 @@ districts_file = '/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/data/sc
 zill.add_schools(schools_file, districts_file)
 
 
-# %% Transform House to Scaler() from Model
+# %% Load Model Scalers
 
 
 _x_scaler = joblib.load('ml/data/x_scaler.gz')
@@ -136,40 +129,56 @@ _y_zest_col = joblib.load('ml/data/zest_col.pkl')
 
 _predictor_cols = joblib.load('ml/data/predictor_cols.pkl')
 
-zill.transform(_x_scaler, _y_rent_scaler, _x_cols, _y_rent_col, _predictor_cols)
+# %% Normalization
+
+#using zestimate as output
+zill.transform(_x_scaler, _y_zest_scaler, _x_cols, _y_zest_col, _predictor_cols)
+
+#using rent as output
+# zill.transform(_x_scaler, _y_rent_scaler, _x_cols, _y_rent_col, _predictor_cols)
 
 
-
-
-# %% Convert to Tensor
+# %% Retrieve Tensors
 
 _x_tensor, _y_tensor = zill.get_tensor()
 
-# %%
-
-model.eval()
-
-y_pred = model(_x_tensor)
-
-val_loss = criterion(y_pred, y_tensor)
-
 
 # %% Loading the model
-D_in, D_out = x_tensor.shape[1], y_tensor.shape[1]
+D_in, D_out = _x_tensor.shape[1], _y_tensor.shape[1]
+L1, L2, L3, L4 = 2000, 2000, 2000, 2000
+criterion = nn.MSELoss()
+
 
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
-PATH = 'state_dict_model.pt'
+FILE = 'state_dict_model.pt'
 
-#create device object for cuda operations
-dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
-#load model
+#init model
 test_model = Net(D_in, D_out, L1, L2, L3, L4)
-
-test_model.load_state_dict(torch.load(PATH))
+test_model.load_state_dict(torch.load(FILE))
 
 
 test_model.eval()
 
-y_pred = test_model(x_tensor)
+
+# %% Test against Model
+
+
+
+y_pred = test_model(_x_tensor)
+
+loss = torch.sqrt(criterion(y_pred, _y_tensor))
+
+print("percentage predicted: ", y_pred/_y_tensor)
+
+# %%
+
+actual = _y_tensor.detach().numpy()
+prediction = y_pred.detach().numpy()
+
+y_actual_scaled = _y_zest_scaler.inverse_transform(actual)
+y_pred_scaled = _y_zest_scaler.inverse_transform(prediction)
+
+print("Actual value: ", y_actual_scaled, "Predicted value: ", y_pred_scaled)
+
+
 
