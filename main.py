@@ -15,6 +15,7 @@ key = os.getenv('ZILLOW_API_KEY')
 
 from zestimate import get_zestimate
 from deepsearchresults import deep_search
+from zillowObject.zillowObject import House
 import pandas as pd
 import geopandas as gpd
 import xml.etree.ElementTree as ET
@@ -66,22 +67,24 @@ propertyDefaults = {
 def run_raw_address(citystatezip, address): #wrap into a function elsewhere?
     try:
         # zillowProperty = zillowObject.PropertyZest(propertyDefaults) #init zillowProperty as a zillowObject(init with given dict)
-        zillowProperty = propertyDefaults
+        zillow = House(propertyDefaults)
         #deep search call
-        deep_search(key, citystatezip, address, zillowProperty) 
+        location = {'street' : address,
+                    'city' : citystatezip}
+        
+        zillow.update(location)
+        
+        zillow.deep_search(key)
 
-        if (zillowProperty['zpid'] != ''): #making sure property is listed/not null, else continue
+
+        if (zillow.zpid != ''): #making sure property is listed/not null, else continue
             #zestimate call
-            get_zestimate(key, zillowProperty['zpid'], zillowProperty) 
-            
-            
-            return zillowProperty
-            #upload property to postgresql db
-            # print('recording zillow property: %s'%zillowProperty)
-            # record_zillowProperty(zillowProperty)
+            zillow.get_zestimate(key)
+
+            return zillow._values
+
         else:
-            print('this address has no zpid, continuing..')
-            
+            print('this address has no zpid, continuing..')            
             
     except:
         print("address failure somewhere")
@@ -174,7 +177,7 @@ if __name__=='__main__':
 
     
     
-    fix_shp(280777, 4500)
+    fix_shp(289500, 4500)
     
     
     

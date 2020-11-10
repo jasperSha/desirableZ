@@ -19,7 +19,7 @@ from sklearn.metrics import r2_score
 from sklearn.preprocessing import MinMaxScaler
 
 from geospatial.to_wkt import to_wkt
-# from geospatial.schoolimputation import assign_property_school_districts, school_imputation, property_school_rating
+from geospatial.schoolimputation import assign_property_school_districts, school_imputation, property_school_rating
 from ml.kdtree import knearest_balltree
 from ml.model.neuralnet import Net
 
@@ -87,6 +87,8 @@ def add_schools():
     os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
     df = pd.read_csv('zillow.csv')
     
+    #for random sampling
+    df = df.sample(n=50)
     zillow_gdf = to_wkt(df)
 
     
@@ -107,7 +109,8 @@ def add_schools():
     zillow = property_school_rating(zill_df, full_schools)
     
     os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data')
-    zillow.to_csv('fullzillow.csv', index=False)
+    # zillow.to_csv('fullzillow.csv', index=False)
+    zillow.to_csv('random_sample_5000_zillow.csv', index=False)
 
 
 
@@ -119,8 +122,18 @@ def normalize_df(df, cols):
         result[feature_name] = (df[feature_name] - min_value) / (max_value - min_value)
     return result
 
+def update_data():
+    # Update dataset
+    combine_zillow_csv()
+    add_schools()
+    
+    
 
+# %% Recompile Zillow data
+combine_zillow_csv()
 
+# %% Schools
+add_schools()
 
 # %%
     
@@ -212,12 +225,7 @@ def check_collinearity():
     of null values from the single family groupby dataframe.
     
     '''
-def update_data():
-    # Update dataset
-    combine_zillow_csv()
-    add_schools()
-    
-    
+
 
 # %% Read Zillow data
 
@@ -227,7 +235,7 @@ zill_gdf = gpd.GeoDataFrame(zillow, crs='EPSG:4326', geometry=zillow['geometry']
 
 
 
-# %% Read crime density and append to housing dataframe, then log normal of crime
+# Read crime density and append to housing dataframe, then log normal of crime
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/data')
 #crime densities have not been normalized yet
 crime_density = pd.read_csv('crime_density_rh_gridsize_1.csv')
@@ -251,7 +259,7 @@ vacant = norm_df.index[norm_df['useCode']=='VacantResidentialLand']
 unwanted_idx = zest_zero_idx.append([rent_zero_idx, unknown, vacant])
 zero_df = norm_df.loc[set(norm_df.index) - set(unwanted_idx)]
 
-# %% Scaling the data
+# Scaling the data
 
 '''
 numerical:
@@ -491,8 +499,8 @@ D_in, D_out = x_tensor.shape[1], y_tensor.shape[1]
 #Hyperparameters
 lr = .008 # optimal learning rate for batch size of 64
 # lr = .01 # optimal learning rate for batch size 32
-epochs = 500
-L1, L2, L3, L4 = 2000, 2000, 2000, 2000
+epochs = 100
+L1, L2, L3, L4 = 1000, 1000, 1000, 1000
 
 
 # %%Init model, optimizer
@@ -521,6 +529,11 @@ train_set = torch.utils.data.TensorDataset(X_train, y_train)
 
 validation_set = torch.utils.data.TensorDataset(X_test, y_test)
 
+'''
+TODO:
+    REDUCE BATCH SIZE, GETTING DUPLICATE MODEL PREDICTIONS, MAYBE IT'S WHAT WE WANT THO?
+
+'''
 train_params = {'batch_size' : 64,
                 'shuffle' : True,
                 'pin_memory' : True,
