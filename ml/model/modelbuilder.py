@@ -71,7 +71,7 @@ def combine_zillow_csv():
     df = df.drop_duplicates(subset=['zpid'])
     
     #fix the csv write that included indices
-    df = df.drop(['Unnamed: 0', 'Unnamed: 0.1'], axis=1)
+    df = df.drop(['Unnamed: 0', 'Unnamed: 0.1', 'amount', 'last-updated'], axis=1)
     
     os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
     df.to_csv('zillow.csv', index=False)
@@ -88,7 +88,7 @@ def add_schools():
     df = pd.read_csv('zillow.csv')
     
     #for random sampling
-    df = df.sample(n=50)
+    # df = df.sample(n=50)
     zillow_gdf = to_wkt(df)
 
     
@@ -109,8 +109,8 @@ def add_schools():
     zillow = property_school_rating(zill_df, full_schools)
     
     os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data')
-    # zillow.to_csv('fullzillow.csv', index=False)
-    zillow.to_csv('random_sample_5000_zillow.csv', index=False)
+    zillow.to_csv('fullzillow.csv', index=False)
+    # zillow.to_csv('random_sample_5000_zillow.csv', index=False)
 
 
 
@@ -132,7 +132,7 @@ def update_data():
 # %% Recompile Zillow data
 combine_zillow_csv()
 
-# %% Schools
+# Schools
 add_schools()
 
 # %%
@@ -259,6 +259,9 @@ vacant = norm_df.index[norm_df['useCode']=='VacantResidentialLand']
 unwanted_idx = zest_zero_idx.append([rent_zero_idx, unknown, vacant])
 zero_df = norm_df.loc[set(norm_df.index) - set(unwanted_idx)]
 
+#drop NaN results
+zero_df = zero_df.dropna(subset=['rentzestimate', 'zestimate'])
+
 # Scaling the data
 
 '''
@@ -293,6 +296,8 @@ MinMaxScaler can be saved to apply to future data/tests.
 
 
 '''
+
+
 norm_df = zero_df
 
 # log (density + 1) to handle zeros for log norm
@@ -384,7 +389,7 @@ zips_df['zipcode'] = zips_df['zipcode'].apply(lambda x: x //100)
 dummy_df = pd.get_dummies(zips_df, columns=['useCode', 'zipcode'], drop_first=True, prefix='', prefix_sep='')
 
 
-# Final Cleaning of dataframe of unnecessary columns
+# %% Final Cleaning of dataframe of unnecessary columns
 
 '''
 Here we drop the unneeded columns for training our model:
@@ -400,12 +405,20 @@ Here we drop the unneeded columns for training our model:
     DISTRICT
     school_count
     
+    testing:
+        zindexValue
+        valueChange
+        low
+        high
+        keep: yearBuilt
+        
+    
     
 '''
 
 keep_cols =[col for col in dummy_df.columns if col not in ['zpid', 'percentile', 'street', 'city', 'state', 'taxAssessmentYear',
-                                                           'FIPScounty', 'yearBuilt', 'lastSoldDate', 'lastupdated', 'DISTRICT', 
-                                                           'school_count']]
+                                                           'FIPScounty', 'lastSoldDate', 'lastupdated', 'DISTRICT', 
+                                                           'school_count', 'zindexValue', 'valueChange', 'low', 'high']]
 
 
 x_df = dummy_df[keep_cols]
@@ -473,7 +486,7 @@ predictor_cols = x.columns
 
 cwd = os.getcwd()
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
-joblib.dump(predictor_cols, 'predictor_cols.pkl')
+joblib.dump(predictor_cols, 'predictor_cols_01.pkl')
 os.chdir(cwd)
 
 
@@ -497,10 +510,10 @@ y_tensor = torch.from_numpy(y.values)
 D_in, D_out = x_tensor.shape[1], y_tensor.shape[1]
 
 #Hyperparameters
-lr = .008 # optimal learning rate for batch size of 64
-# lr = .01 # optimal learning rate for batch size 32
+lr = .004 # optimal learning rate for batch size of 64
+# lr = .03 # optimal learning rate for batch size 32
 epochs = 100
-L1, L2, L3, L4 = 1000, 1000, 1000, 1000
+L1, L2, L3, L4 = 2000, 1000, 1000, 5000
 
 
 # %%Init model, optimizer
@@ -643,7 +656,7 @@ traced_model = torch.jit.trace(model, )
 # %% Saving the model
 
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
-FILENAME = 'state_dict_model.pt'
+FILENAME = 'state_dict_model_01.pt'
 
 torch.save(model.state_dict(), FILENAME)
 

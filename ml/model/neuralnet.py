@@ -97,7 +97,7 @@ class Net(nn.Module):
         x = F.relu(self.fc3(x))
         x = F.relu(self.fc4(x))
 
-        y_pred = self.fcout(x)
+        y_pred = F.relu(self.fcout(x))
         
         return y_pred
 
