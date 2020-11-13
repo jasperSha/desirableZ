@@ -17,3 +17,5 @@ ml/data/
 .Rhistory
 .DS_Store
 schools_operation.py
+
+geospatial/data/
