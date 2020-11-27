@@ -1,30 +1,21 @@
 import numpy as np
 
-def haversine(lat1, lat2, lon1, lon2, earthradius=):
+def haversine(lon1, lat1, lon2, lat2, convert_rad=True):
     '''
     Parameters
     --------
-    cluster_points 2d array
     
-    center 2d array (one element)
+    lon1, lat1 : nd.array of first points
+    lon2, lat2 : nd.array of second points
+    if convert_rad = True, convert lat/lon pairs to radian, default is True
+    if looking for distance from a center out to multiple, just vstack the center points
     
     Returns
     radian_distance: 
-        np.array with each haversine distance in radians between each cluster 
-        point and the center point
+        nd.array of haversine distance between first and second arrays, in km
     '''
-    
-    cluster_points, center = np.radians(cluster_points), np.radians(center)
-    
-    #extend center array to match row-wise all cluster_points
-    center = np.tile(center, (len(cluster_points), 1))
-    
-    lat1, lon1 = cluster_points[:,1], cluster_points[:,0]
-    lat2, lon2 = center[:,1], center[:,0]
-    
-    #broadcast
-    lat1, lon1 = lat1[:,None], lon1[:,None]
-    lat2, lon2 = lat2[:,None], lon2[:,None]
+    if convert_rad:
+        lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
     
     dlat = lat2 - lat1
     dlon = lon2 - lon1
@@ -33,6 +24,6 @@ def haversine(lat1, lat2, lon1, lon2, earthradius=):
 
     c = 2 * np.arcsin(np.sqrt(a))
     
-    radian_distance = c * 180/math.pi
-    return radian_distance
+    km = 6367 * c
+    return km
     
