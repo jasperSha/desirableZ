@@ -3,6 +3,7 @@ import time
 import glob
 import math
 import joblib
+import re
 
 import geopandas as gpd
 from shapely.wkt import loads
@@ -14,10 +15,14 @@ import seaborn as sns
 import torch
 import torch.nn as nn
 
+from scipy.spatial import cKDTree
+
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import MinMaxScaler
 
+from geospatial.haversine import haversine
+from geospatial.more_columns import prox_transpo
 from geospatial.to_wkt import to_wkt
 from geospatial.schoolimputation import assign_property_school_districts, school_imputation, property_school_rating
 from ml.kdtree import knearest_balltree
@@ -73,6 +78,11 @@ def combine_zillow_csv():
     #fix the csv write that included indices
     df = df.drop(['Unnamed: 0', 'Unnamed: 0.1', 'amount', 'last-updated'], axis=1)
     
+    '''
+    TODO:
+        READ ZINDEXVALUE IN AS A FLOAT64, REMOVE QUOTES AND COMMA FROM FIELDS
+    '''
+    
     os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
     df.to_csv('zillow.csv', index=False)
     
@@ -127,7 +137,105 @@ def update_data():
     combine_zillow_csv()
     add_schools()
     
+# %%
+
+def assign_dtypes():
+    os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data')
+    dtypes = { 'FIPScounty' : 'float64',
+               'bathrooms' : 'float64',
+               'bedrooms' : 'float64',
+               'city' : object,
+               'finishedSqFt' : 'float64',
+               'high' : 'float64',
+               'lastSoldDate' : object,
+               'lastSoldPrice' : 'float64',
+               'lastupdated' : object,
+               'lotSizeSqFt' : 'float64',
+               'low' : 'float64',
+               'percentile' : 'float64',
+               'rentzestimate' : 'float64',
+               'state' : object,
+               'street' : object,
+               'taxAssessment' : 'float64',
+               'taxAssessmentYear' : object,
+               'useCode' : object,
+               'valueChange' : 'float64',
+               'yearBuilt' : object,
+               'zestimate' : 'float64',
+               'zindexValue' : object,
+               'zipcode' : 'int64',
+               'zpid' : object,
+               'last-updated' : object,
+               'geometry' : object,
+               'DISTRICT' : object,
+               'edu_rating' : 'float64',
+               'school_count' : 'int64'        
+            }
     
+    #remove commas, convert zindexValue to int64
+    df = pd.read_csv('fullzillow.csv', dtype=dtypes)
+    df['zindexValue'] = df['zindexValue'].apply(lambda x: x.replace('"', ''))
+    df['zindexValue'] = df['zindexValue'].apply(lambda x: x.replace(',', ''))
+    df['zindexValue'] = pd.to_numeric(df['zindexValue'])
+    return df
+
+def public_transpo_proximity(df):
+    '''
+    Defining easy access public transportaion as being within 5 miles of a house
+    First searching k=5 nearest neighbors, then dropping those >5 miles away
+    Appending count of nearby transportaion centers to house dataframe
+    
+    '''
+    cd = os.getcwd()
+    os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/')
+    transpo_gdf = prox_transpo()
+    os.chdir(cd)
+    houses = gpd.GeoDataFrame(df, crs='EPSG:4326', geometry=df['geometry'].apply(loads))
+
+    #first reset indices so they line up
+    houses.reset_index(drop=True, inplace=True)
+    transpo_gdf.reset_index(drop=True, inplace=True)
+    
+    #create numpy array out of the geometry of each dataframe
+    origins = np.array(list(houses.geometry.apply(lambda x: (x.x, x.y))))
+    neighbors = np.array(list(transpo_gdf.geometry.apply(lambda x: (x.x, x.y))))
+    
+
+    #create the binary tree from which to query the neighbors
+    btree = cKDTree(neighbors)
+
+    #looking for 5 nearest for the average schools rating, but store k=3 for reference
+    #finds distance, and index in second gdf of each neighbor
+    dist, idx = btree.query(origins, 5)
+    
+    print(origins[0])
+    print(transpo_gdf.iloc[idx[0][0]])
+    first = origins[0]
+    second = transpo_gdf.iloc[idx[0][0]].geometry
+    
+    haversine_dist = haversine(first[0], first[1], np.array(second.x), np.array(second.y), convert_rad=True)
+    print(haversine_dist)
+    
+    return dist, idx
+    # dist_arr = haversine(lon1, lat1, lon2, lat2)
+    # print(dist_arr)
+    
+    
+
+def hospital_proximity(df):
+    
+
+    return df
+    
+df = assign_dtypes()
+dist, idx = public_transpo_proximity(df)
+
+
+
+
+
+
+
 
 # %% Recompile Zillow data
 combine_zillow_csv()
