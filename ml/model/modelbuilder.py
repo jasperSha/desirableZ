@@ -22,7 +22,7 @@ from sklearn.metrics import r2_score
 from sklearn.preprocessing import MinMaxScaler
 
 from geospatial.haversine import haversine
-from geospatial.more_columns import prox_transpo
+from geospatial.more_columns import prox_transpo, prox_colleges
 from geospatial.to_wkt import to_wkt
 from geospatial.schoolimputation import assign_property_school_districts, school_imputation, property_school_rating
 from ml.kdtree import knearest_balltree
@@ -177,35 +177,42 @@ def assign_dtypes():
     df['zindexValue'] = df['zindexValue'].apply(lambda x: x.replace('"', ''))
     df['zindexValue'] = df['zindexValue'].apply(lambda x: x.replace(',', ''))
     df['zindexValue'] = pd.to_numeric(df['zindexValue'])
-    return df
+    gdf = gpd.GeoDataFrame(df, crs='EPSG:4326', geometry=df['geometry'].apply(loads))
 
-def public_transpo_proximity(df):
+    return gdf
+
+def proximal_locations(gdf, flag='public'):
     '''
+    flag == 'public':
     Defining easy access public transportaion as being within 5 miles of a house
-    First searching k=5 nearest neighbors, then dropping those >5 miles away
+    First searching k=3 nearest neighbors, then dropping those >5 miles away
     Appending count of nearby transportaion centers to house dataframe
+    
+    flag == 'schools':
+    Also finds proximity to public university education, k=3. Primarily composed of
+    technical/trade schools, secondary education, whereas the school imputation/ratings
+    from GreatSchools is for elementary -> high school ratings, for children.
     
     '''
     cwd = os.getcwd()
     os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/')
-    transpo_gdf = prox_transpo()
+    if flag == 'public':
+        prox_gdf = prox_transpo()
+    elif flag == 'colleges':
+        prox_gdf = prox_colleges()
     os.chdir(cwd)
-    houses = gpd.GeoDataFrame(df, crs='EPSG:4326', geometry=df['geometry'].apply(loads))
-
+    
+    houses = gdf
+    
     #first reset indices so they line up
     houses.reset_index(drop=True, inplace=True)
-    transpo_gdf.reset_index(drop=True, inplace=True)
+    prox_gdf.reset_index(drop=True, inplace=True)
     
-    #create numpy array out of the geometry of each dataframe
     origins = np.array(list(houses.geometry.apply(lambda x: (x.x, x.y))))
-    neighbors = np.array(list(transpo_gdf.geometry.apply(lambda x: (x.x, x.y))))
+    neighbors = np.array(list(prox_gdf.geometry.apply(lambda x: (x.x, x.y))))
     
-
-    #create the binary tree from which to query the neighbors
     btree = cKDTree(neighbors)
 
-    #looking for 5 nearest for the average schools rating, but store k=3 for reference
-    #finds distance, and index in second gdf of each neighbor
     _, idx = btree.query(origins, 3)
     
     origins_idx = np.column_stack((origins, idx))
@@ -214,8 +221,8 @@ def public_transpo_proximity(df):
     for array in origins_idx:
         houses_lon, houses_lat = array[0], array[1]
         
-        public_transpo_pts = neighbors[array[2:5].astype(int)]
-        public_lon, public_lat = public_transpo_pts[:,0], public_transpo_pts[:,1]
+        prox_pts = neighbors[array[2:5].astype(int)]
+        public_lon, public_lat = prox_pts[:,0], prox_pts[:,1]
         
         distance = haversine(houses_lon, houses_lat, public_lon, public_lat)
         haversine_distances.append(distance)
@@ -223,18 +230,25 @@ def public_transpo_proximity(df):
 
     ans = np.zeros(len(haversine_distances))
     ans = haversine_distances.mean(axis=1)
-    print(ans)
-    return dist, origins_idx
 
+    prox_series = pd.Series(ans)
+    if flag == 'public':
+        gdf['transpo_prox'] = prox_series
+    elif flag == 'colleges':
+        gdf['colleges_prox'] = prox_series
+    return gdf
 
+def colleges_proximity(df):
+    '''
+    Find proximity to public education
+    '''
 
-def hospital_proximity(df):
     
+gdf = assign_dtypes()
+gdf = proximal_locations(gdf)
+gdf = proximal_locations(gdf, flag='colleges')
+print(gdf.head(), gdf.columns)
 
-    return df
-    
-df = assign_dtypes()
-dist, idx = public_transpo_proximity(df)
 
 
 

@@ -32,9 +32,9 @@ def prox_transpo():
 def prox_colleges():
     file_dir = r'data/university_locations/'
     df = gpd.read_file(file_dir + 'us-colleges-and-universities.shp')
-    df = df['geometry']
     
-    return df
+    colleges_gdf = gpd.GeoDataFrame(df['geometry'], crs='EPSG:4326', geometry='geometry')
+    return colleges_gdf
     
 def prox_restaurants(house, radius, category, limit=50):
     '''
@@ -95,7 +95,7 @@ def prox_restaurants(house, radius, category, limit=50):
 
 def prox_public(house, radius=8000, category='publicservicesgovt', limit=50):
     '''
-    Finds nearest public services
+    Finds nearest public schools
     '''
     load_dotenv()
     yelp_key = os.getenv('YELP_API_KEY')
@@ -151,7 +151,8 @@ if __name__ == '__main__':
 
 
 
-    prox_transpo()
+    df = prox_colleges()
+    print(df.head())
 
 
 
