@@ -186,10 +186,10 @@ def public_transpo_proximity(df):
     Appending count of nearby transportaion centers to house dataframe
     
     '''
-    cd = os.getcwd()
+    cwd = os.getcwd()
     os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/')
     transpo_gdf = prox_transpo()
-    os.chdir(cd)
+    os.chdir(cwd)
     houses = gpd.GeoDataFrame(df, crs='EPSG:4326', geometry=df['geometry'].apply(loads))
 
     #first reset indices so they line up
@@ -206,21 +206,27 @@ def public_transpo_proximity(df):
 
     #looking for 5 nearest for the average schools rating, but store k=3 for reference
     #finds distance, and index in second gdf of each neighbor
-    dist, idx = btree.query(origins, 5)
+    _, idx = btree.query(origins, 3)
     
-    print(origins[0])
-    print(transpo_gdf.iloc[idx[0][0]])
-    first = origins[0]
-    second = transpo_gdf.iloc[idx[0][0]].geometry
+    origins_idx = np.column_stack((origins, idx))
     
-    haversine_dist = haversine(first[0], first[1], np.array(second.x), np.array(second.y), convert_rad=True)
-    print(haversine_dist)
-    
-    return dist, idx
-    # dist_arr = haversine(lon1, lat1, lon2, lat2)
-    # print(dist_arr)
-    
-    
+    haversine_distances = []
+    for array in origins_idx:
+        houses_lon, houses_lat = array[0], array[1]
+        
+        public_transpo_pts = neighbors[array[2:5].astype(int)]
+        public_lon, public_lat = public_transpo_pts[:,0], public_transpo_pts[:,1]
+        
+        distance = haversine(houses_lon, houses_lat, public_lon, public_lat)
+        haversine_distances.append(distance)
+    haversine_distances = np.stack(haversine_distances, axis=0)
+
+    ans = np.zeros(len(haversine_distances))
+    ans = haversine_distances.mean(axis=1)
+    print(ans)
+    return dist, origins_idx
+
+
 
 def hospital_proximity(df):
     
