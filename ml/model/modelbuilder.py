@@ -4,6 +4,7 @@ import glob
 import math
 import joblib
 import re
+import gc
 
 import geopandas as gpd
 from shapely.wkt import loads
@@ -22,7 +23,7 @@ from sklearn.metrics import r2_score
 from sklearn.preprocessing import MinMaxScaler
 
 from geospatial.haversine import haversine
-from geospatial.more_columns import prox_transpo, prox_colleges
+from geospatial.more_columns import prox_transpo, prox_colleges, prox_worship
 from geospatial.to_wkt import to_wkt
 from geospatial.schoolimputation import assign_property_school_districts, school_imputation, property_school_rating
 from ml.kdtree import knearest_balltree
@@ -140,6 +141,7 @@ def update_data():
 # %%
 
 def assign_dtypes():
+    cd = os.getcwd()
     os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data')
     dtypes = { 'FIPScounty' : 'float64',
                'bathrooms' : 'float64',
@@ -178,10 +180,10 @@ def assign_dtypes():
     df['zindexValue'] = df['zindexValue'].apply(lambda x: x.replace(',', ''))
     df['zindexValue'] = pd.to_numeric(df['zindexValue'])
     gdf = gpd.GeoDataFrame(df, crs='EPSG:4326', geometry=df['geometry'].apply(loads))
-
+    os.chdir(cd)
     return gdf
 
-def proximal_locations(gdf, flag='public'):
+def proximal_locations(gdf, flag):
     '''
     flag == 'public':
     Defining easy access public transportaion as being within 5 miles of a house
@@ -196,10 +198,12 @@ def proximal_locations(gdf, flag='public'):
     '''
     cwd = os.getcwd()
     os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/')
-    if flag == 'public':
+    if flag == 'transpo':
         prox_gdf = prox_transpo()
     elif flag == 'colleges':
         prox_gdf = prox_colleges()
+    elif flag == 'worship':
+        prox_gdf = prox_worship()
     os.chdir(cwd)
     
     houses = gdf
@@ -232,29 +236,13 @@ def proximal_locations(gdf, flag='public'):
     ans = haversine_distances.mean(axis=1)
 
     prox_series = pd.Series(ans)
-    if flag == 'public':
+    if flag == 'transpo':
         gdf['transpo_prox'] = prox_series
     elif flag == 'colleges':
         gdf['colleges_prox'] = prox_series
+    elif flag == 'worship':
+        gdf['worship_prox'] = prox_series
     return gdf
-
-def colleges_proximity(df):
-    '''
-    Find proximity to public education
-    '''
-
-    
-gdf = assign_dtypes()
-gdf = proximal_locations(gdf)
-gdf = proximal_locations(gdf, flag='colleges')
-print(gdf.head(), gdf.columns)
-
-
-
-
-
-
-
 
 
 # %% Recompile Zillow data
@@ -263,107 +251,18 @@ combine_zillow_csv()
 # Schools
 add_schools()
 
-# %%
-    
-def check_collinearity(): 
-    # Use Code Groups
-    describe = houses_df.describe()
-    
-    districts = houses_df.groupby('useCode')
-    
-    
-    
-    condo = districts.get_group('Condominium')
-    coop = districts.get_group('Cooperative')
-    duplex = districts.get_group('Duplex')
-    miscellaneous = districts.get_group('Miscellaneous')
-    mobile = districts.get_group('Mobile')
-    familyTwotoFour = districts.get_group('MultiFamily2To4')
-    familyFivePlus = districts.get_group('MultiFamily5Plus')
-    quad = districts.get_group('Quadruplex')
-    townhouse = districts.get_group('Townhouse')
-    triplex = districts.get_group('Triplex')
-    unknown = districts.get_group('Unknown')
-    vacantresidential = districts.get_group('VacantResidentialLand')
-    
-    
-    #Modeling Single Family data
-    
-    
-    singlefam = districts.get_group('SingleFamily')
-    
-    #Cleaning Zeroes
-    zero_idx = singlefam.index[singlefam['zestimate']==0]
-    '''
-    Single Family Residences with a zestimate of 0. 
-    
-    Last Sold Price maybe more accurate indicator of home value, but for now
-    we'll just remove the zero valued zestimates. (only 123 of them)
-    '''
-    zerosinglefam = singlefam.loc[zero_idx]
-    singlefam = singlefam.loc[set(singlefam.index) - set(zero_idx)]
-    
-    
-    
-    describe = singlefam.describe()
-    # singlefam['rentzestimate'] = np.log(singlefam['rentzestimate'])
-    sns.distplot(singlefam['lastSoldPrice'])
-    
-    
-    #model against square footage
-    x_var = 'finishedSqFt'
-    data = pd.concat([singlefam['lastSoldPrice'], singlefam[x_var]], axis=1)
-    data.plot.scatter(x=x_var, y='lastSoldPrice', ylim=(0, 8000000))
-    
-    
-    
-    #general correlation heatmap
-    corr_matrix = singlefam.corr()
-    fig, ax = plt.subplots(figsize=(12, 9))
-    sns.heatmap(corr_matrix, vmax=.8, square=True)
-    
-    #check top 5 correlations
-    k = 10
-    cols = corr_matrix.nlargest(k, 'rentzestimate')['rentzestimate'].index
-    fig, ax = plt.subplots(figsize=(14, 10))
-    sns.heatmap(singlefam[cols].corr(), vmax=.8, square=True)
-    
-    
-    
-    
-    #Checking null data
-    total = norm_df.isnull().sum().sort_values(ascending=False)
-    percent = (norm_df.isnull().sum()/norm_df.isnull().count()).sort_values(ascending=False)
-    missing_data = pd.concat([total, percent], axis=1, keys=['Total', 'Percent'])
-    print(missing_data)
-    
-    '''
-    Missing data:
-                       Total   Percent
-    FIPScounty          2612  0.023418
-    rentzestimate        147  0.001318
-    valueChange           32  0.000287
-    lastSoldDate          10  0.000090
-    taxAssessmentYear      2  0.000018
-    lastupdated            1  0.000009
-    yearBuilt              1  0.000009
-    
-    
-    This missing data is negligible. Most of it will be cleared with the cleaning
-    of null values from the single family groupby dataframe.
-    
-    '''
 
 
 # %% Read Zillow data
 
-os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data')
-zillow = pd.read_csv('fullzillow.csv')
-zill_gdf = gpd.GeoDataFrame(zillow, crs='EPSG:4326', geometry=zillow['geometry'].apply(loads))
+zill_gdf = assign_dtypes()
+zill_gdf = proximal_locations(zill_gdf, flag='transpo')
+zill_gdf = proximal_locations(zill_gdf, flag='colleges')
+zill_gdf = proximal_locations(zill_gdf, flag='worship')
 
 
+# %% Read crime density and append to housing dataframe, then log normal of crime
 
-# Read crime density and append to housing dataframe, then log normal of crime
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/data')
 #crime densities have not been normalized yet
 crime_density = pd.read_csv('crime_density_rh_gridsize_1.csv')
@@ -377,7 +276,7 @@ houses_df = knearest_balltree(zill_gdf, cd_gdf, radius=1.1)
 #convert back to regular dataframe for pandas functions
 norm_df = pd.DataFrame(houses_df.drop(columns='geometry'))
 
-# Cleaning zeros and the Vacant Lots/Unknown use codes
+# %% Cleaning zeros and the Vacant Lots/Unknown use codes
 zest_zero_idx = norm_df.index[norm_df['zestimate']==0]
 rent_zero_idx = norm_df.index[norm_df['rentzestimate']==0]
 
@@ -390,41 +289,7 @@ zero_df = norm_df.loc[set(norm_df.index) - set(unwanted_idx)]
 #drop NaN results
 zero_df = zero_df.dropna(subset=['rentzestimate', 'zestimate'])
 
-# Scaling the data
-
-'''
-numerical:
-crime_density -> log
-rentzestimate -> None (output)
-zestimate -> None (output)
-lotSizeSqFt -> normal
-low -> normal
-high -> normal
-zindexValue -> normal
-finishedSqFt -> normal
-taxAssessment -> normal
-edu_rating -> normal
-lastSoldDate -> None
-yearBuilt -> None
-valueChange -> normal
-bathrooms -> normal
-bedrooms -> normal
-
-
-We'll be using normalization instead of standardization. Because the high
-variance in the data due to the socioeconomic distribution of Los Angeles,
-the data most likely does NOT follow a standard gaussian curve. Subsequently,
-normalization makes no assumptions to the distribution of the data, and
-allows for the skewed scales, though not to the same degree as using log
-to normalize the data.
-
-Crime density will be log normalized.
-
-MinMaxScaler can be saved to apply to future data/tests.
-
-
-'''
-
+# %% Scaling the data
 
 norm_df = zero_df
 
@@ -436,9 +301,9 @@ x_scaler = MinMaxScaler()
 y_zest_scaler = MinMaxScaler()
 y_rent_scaler = MinMaxScaler()
 
-x_norm_cols = ['lotSizeSqFt', 'low', 'high', 'zindexValue',
-             'finishedSqFt', 'taxAssessment', 'edu_rating', 
-             'valueChange', 'lastSoldPrice','bathrooms', 'bedrooms']
+x_norm_cols = ['lotSizeSqFt', 'finishedSqFt', 'taxAssessment', 'edu_rating', 
+             'valueChange', 'bathrooms', 'bedrooms', 'yearBuilt',
+             'transpo_prox', 'colleges_prox', 'worship_prox']
 
 #scaling our data for dependent and independent
 norm_df[x_norm_cols] = x_scaler.fit_transform(norm_df[x_norm_cols])
@@ -544,12 +409,10 @@ Here we drop the unneeded columns for training our model:
     
 '''
 
-keep_cols =[col for col in dummy_df.columns if col not in ['zpid', 'percentile', 'street', 'city', 'state', 'taxAssessmentYear',
-                                                           'FIPScounty', 'lastSoldDate', 'lastupdated', 'DISTRICT', 
-                                                           'school_count', 'zindexValue', 'valueChange', 'low', 'high']]
+x_df = dummy_df.drop(columns=['zpid', 'percentile', 'street', 'city', 'state', 'taxAssessmentYear',
+                              'FIPScounty', 'lastSoldDate', 'lastupdated', 'last-updated', 'DISTRICT', 
+                              'school_count', 'zindexValue', 'valueChange', 'low', 'high', 'taxAssessment'])
 
-
-x_df = dummy_df[keep_cols]
 x_df = x_df.dropna()
 
 # last few zero values in rent/zestimate
@@ -604,7 +467,7 @@ y_rent_col = ['rentzestimate']
 
 
 y = pd.DataFrame(x_df, columns=y_zest_col)
-x = x_df.drop(['rentzestimate', 'zestimate'], axis=1)
+x = x_df.drop(columns=['rentzestimate', 'zestimate'])
 
 x, y = x.astype(np.float32), y.astype(np.float32)
 
@@ -614,7 +477,7 @@ predictor_cols = x.columns
 
 cwd = os.getcwd()
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
-joblib.dump(predictor_cols, 'predictor_cols_01.pkl')
+joblib.dump(predictor_cols, 'predictor_cols_02.pkl')
 os.chdir(cwd)
 
 
@@ -625,8 +488,6 @@ Notes:
     
 '''
 
-#force memory deallocation
-torch.cuda.empty_cache()
 x_tensor = None
 y_tensor = None
 
@@ -638,10 +499,10 @@ y_tensor = torch.from_numpy(y.values)
 D_in, D_out = x_tensor.shape[1], y_tensor.shape[1]
 
 #Hyperparameters
-lr = .004 # optimal learning rate for batch size of 64
+lr = .0001 # optimal learning rate for batch size of 64
 # lr = .03 # optimal learning rate for batch size 32
 epochs = 100
-L1, L2, L3, L4 = 2000, 1000, 1000, 5000
+L1, L2, L3, L4 = 200, 300, 300, 200
 
 
 # %%Init model, optimizer
@@ -656,13 +517,23 @@ model.to(dev)
 #default reduction is 'mean' - loss is then independent of batch size
 criterion = nn.MSELoss()
 
-#set our optimizer=Adam
-opt = torch.optim.Adam(model.parameters(), lr=lr)
+# #less tilted by outliers with mean absolute error func (this one's awful)
+# criterion = nn.L1Loss()
+
+# #set our optimizer=Adam
+# opt = torch.optim.Adam(model.parameters(), lr=lr)
+
+#AdamW, default parameters (lr=1e-3, weight_decay=1e-2, eps=1e-8)   (best so far)
+opt = torch.optim.AdamW(model.parameters(), lr=lr)
+
+# #AdamW, default params, using AMSGrad variant
+# opt = torch.optim.AdamW(model.parameters(), lr=lr, amsgrad=True) #just added manual garbage cleanup after training
+
 
 # %% Split and Set DataLoader
 
 #train and validation sets
-X_train, X_test, y_train, y_test = train_test_split(x_tensor, y_tensor, test_size=0.2, random_state=50)
+X_train, X_test, y_train, y_test = train_test_split(x_tensor, y_tensor, test_size=0.2, random_state=20)
 
 
 #load datasets for iterator and set our batch sizes
@@ -670,11 +541,6 @@ train_set = torch.utils.data.TensorDataset(X_train, y_train)
 
 validation_set = torch.utils.data.TensorDataset(X_test, y_test)
 
-'''
-TODO:
-    REDUCE BATCH SIZE, GETTING DUPLICATE MODEL PREDICTIONS, MAYBE IT'S WHAT WE WANT THO?
-
-'''
 train_params = {'batch_size' : 64,
                 'shuffle' : True,
                 'pin_memory' : True,
@@ -720,6 +586,10 @@ for epoch in range(epochs):
         #make prediction
         y_pred = model(x)
         
+        #storing the original vs predictions
+        y_actual.append(x)
+        y_hat.append(y_pred)
+        
         loss = criterion(y_pred, y)
         
         #backpropagation
@@ -743,6 +613,8 @@ for epoch in range(epochs):
             val_loss = criterion(y_pred, y_val)
             
             validation_loss += val_loss.item()
+            
+            #storing to evaluate
             val_losses.append(validation_loss)
             
         
@@ -750,16 +622,19 @@ for epoch in range(epochs):
     running_loss = 0.0
     validation_loss = 0.0
 
-
+# %% ensure memory deallocation
+del model, opt
+gc.collect()
+torch.cuda.empty_cache()
 
 # %%
 
 
-# y_actual = y_rent_scaler.inverse_transform(np.reshape(y_actual, (-1, 4)))
+y_actual = y_rent_scaler.inverse_transform(np.reshape(y_actual, (-1, 4)))
 
-# y_hat = [x.cpu() for x in y_hat]
-# y_hat = [x.numpy() for x in y_hat]
-# y_hat = y_rent_scaler.inverse_transform(np.reshape(y_hat, (-1, 4)))
+y_hat = [x.cpu() for x in y_hat]
+y_hat = [x.numpy() for x in y_hat]
+y_hat = y_rent_scaler.inverse_transform(np.reshape(y_hat, (-1, 4)))
 
 
 
@@ -788,4 +663,95 @@ FILENAME = 'state_dict_model_01.pt'
 
 torch.save(model.state_dict(), FILENAME)
 
+
+# %% Extra Comparisons
+    
+def check_collinearity(): 
+    # Use Code Groups
+    describe = houses_df.describe()
+    
+    districts = houses_df.groupby('useCode')
+    
+    
+    
+    condo = districts.get_group('Condominium')
+    coop = districts.get_group('Cooperative')
+    duplex = districts.get_group('Duplex')
+    miscellaneous = districts.get_group('Miscellaneous')
+    mobile = districts.get_group('Mobile')
+    familyTwotoFour = districts.get_group('MultiFamily2To4')
+    familyFivePlus = districts.get_group('MultiFamily5Plus')
+    quad = districts.get_group('Quadruplex')
+    townhouse = districts.get_group('Townhouse')
+    triplex = districts.get_group('Triplex')
+    unknown = districts.get_group('Unknown')
+    vacantresidential = districts.get_group('VacantResidentialLand')
+    
+    
+    #Modeling Single Family data
+    
+    
+    singlefam = districts.get_group('SingleFamily')
+    
+    #Cleaning Zeroes
+    zero_idx = singlefam.index[singlefam['zestimate']==0]
+    '''
+    Single Family Residences with a zestimate of 0. 
+    
+    Last Sold Price maybe more accurate indicator of home value, but for now
+    we'll just remove the zero valued zestimates. (only 123 of them)
+    '''
+    zerosinglefam = singlefam.loc[zero_idx]
+    singlefam = singlefam.loc[set(singlefam.index) - set(zero_idx)]
+    
+    
+    
+    describe = singlefam.describe()
+    # singlefam['rentzestimate'] = np.log(singlefam['rentzestimate'])
+    sns.distplot(singlefam['lastSoldPrice'])
+    
+    
+    #model against square footage
+    x_var = 'finishedSqFt'
+    data = pd.concat([singlefam['lastSoldPrice'], singlefam[x_var]], axis=1)
+    data.plot.scatter(x=x_var, y='lastSoldPrice', ylim=(0, 8000000))
+    
+    
+    
+    #general correlation heatmap
+    corr_matrix = singlefam.corr()
+    fig, ax = plt.subplots(figsize=(12, 9))
+    sns.heatmap(corr_matrix, vmax=.8, square=True)
+    
+    #check top 5 correlations
+    k = 10
+    cols = corr_matrix.nlargest(k, 'rentzestimate')['rentzestimate'].index
+    fig, ax = plt.subplots(figsize=(14, 10))
+    sns.heatmap(singlefam[cols].corr(), vmax=.8, square=True)
+    
+    
+    
+    
+    #Checking null data
+    total = norm_df.isnull().sum().sort_values(ascending=False)
+    percent = (norm_df.isnull().sum()/norm_df.isnull().count()).sort_values(ascending=False)
+    missing_data = pd.concat([total, percent], axis=1, keys=['Total', 'Percent'])
+    print(missing_data)
+    
+    '''
+    Missing data:
+                       Total   Percent
+    FIPScounty          2612  0.023418
+    rentzestimate        147  0.001318
+    valueChange           32  0.000287
+    lastSoldDate          10  0.000090
+    taxAssessmentYear      2  0.000018
+    lastupdated            1  0.000009
+    yearBuilt              1  0.000009
+    
+    
+    This missing data is negligible. Most of it will be cleared with the cleaning
+    of null values from the single family groupby dataframe.
+    
+    '''
 
