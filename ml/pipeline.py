@@ -38,7 +38,11 @@ def generate_addresses():
         zillows.append(x)
     return zillows
 
+# %%
 
+df = generate_addresses()
+
+x = df[0]
         
 
 # %%
@@ -96,7 +100,13 @@ propertyDefaults = {
             
             
         }
+# %%
 
+zill = House(propertyDefaults)
+zill.update(x)
+zill.deep_search(key)
+zill.get_zestimate(key)
+print(zill)
 
 # %% API Call
 
