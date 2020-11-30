@@ -63,10 +63,10 @@ class Net(nn.Module):
     '''
     def __init__(self, D_in, D_out, L1, L2, L3, L4):
         super().__init__()
-        #input layer has 43 columns, so 43 inputs
+        #input layer
         self.fc1 = nn.Linear(D_in, L1)
         
-        #1 hidden layers, (20 - 20) each
+        #hidden layers
         self.fc2 = nn.Linear(L1, L2)
         self.fc3 = nn.Linear(L2, L3)
         self.fc4 = nn.Linear(L3, L4)
@@ -91,13 +91,19 @@ class Net(nn.Module):
         nn.init.zeros_(self.fcout.bias)
     
     def forward(self, x):
-        #using ReLu activation function
-        x = F.relu(self.fc1(x))
+        x = self.fc1(x)
+        
+        # # purely linear regression (terrible, never remotely converges)
+        # x = self.fc2(x)
+        # x = self.fc3(x)
+        # x = self.fc4(x)
+        
+        # using ReLu activation function
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         x = F.relu(self.fc4(x))
 
-        y_pred = F.relu(self.fcout(x))
+        y_pred = self.fcout(x)
         
         return y_pred
 
