@@ -2,6 +2,8 @@
 from collections.abc import MutableMapping
 import os
 from dotenv import load_dotenv
+import pickle
+import re
 
 import requests
 import xml.etree.ElementTree as ET
@@ -31,12 +33,15 @@ def prox_transpo():
 
 def prox_colleges():
     file_dir = r'data/university_locations/'
-    df = gpd.read_file(file_dir + 'us-colleges-and-universities.shp')
+    gdf = gpd.read_file(file_dir + 'us-colleges-and-universities.shp')
     
-    colleges_gdf = gpd.GeoDataFrame(df['geometry'], crs='EPSG:4326', geometry='geometry')
+    cols = ['geometry']
+    colleges_gdf = gdf[cols]
     return colleges_gdf
+
+
     
-def prox_restaurants(house, radius, category, limit=50):
+def prox_restaurants(zipcode, radius=40000, limit=50):
     '''
     @param: house with longitude/latitude location to send to api request, plus search radius, aiming to sort by distance from long/lat
     @params:
@@ -58,24 +63,12 @@ def prox_restaurants(house, radius, category, limit=50):
     yelp_key = os.getenv('YELP_API_KEY')
     yelp_URL = 'https://api.yelp.com/v3/businesses/search'
 
-    #longitude = house.longitude
-    #latitude = house.latitude
-    '''
-    TESTING
-    '''
-    longitude = '-118.341438'
-    latitude = '34.052503'
-    radius = 40000
-    categories = ['food', 'nightlife', 'publicservicesgovt', 'hotelstravel', 'localflavor', 'arts', 'religiousorgs']
-    '''
-    TESTING
-    '''
+    category = 'restaurants'
     
     parameters = {
-        'longitude' : longitude,
-        'latitude' : latitude,
+        'location' : zipcode,
         'sort_by' : 'distance',
-        'categories' : categories,
+        'categories' : category,
         'radius' : radius,
         'limit' : limit
     }
@@ -83,82 +76,86 @@ def prox_restaurants(house, radius, category, limit=50):
         'Authorization': 'bearer %s' % yelp_key
         }
     response = requests.get(yelp_URL, params=parameters, headers=headers)
-    sum_found = response.json()['total']
-    data = response.json()['businesses']
-    
-    df = pd.DataFrame.from_records(data)
-    df = df.drop(columns=['id', 'alias', 'categories', 'image_url', 'is_closed', 'url', 'display_phone', 'phone', 'location', 'transactions'], axis=1)
-#    df = df[df['review_count'] >= 25]
-    print(df.head(), df.shape)
-    print(df.columns)
-    return df
+    try:
+        data = response.json()['businesses']
+    except:
+        print(response)
+        return
 
-def prox_public(house, radius=8000, category='publicservicesgovt', limit=50):
-    '''
-    Finds nearest public schools
-    '''
-    load_dotenv()
-    yelp_key = os.getenv('YELP_API_KEY')
-    yelp_URL = 'https://api.yelp.com/v3/businesses/search'
+    df = pd.DataFrame.from_records(data)   
+    df = df.loc[df['review_count'] >= 25]
+    
+    df = df.reset_index(drop=True)
+    
+    longitudes = pd.Series([coordinates['longitude'] for coordinates in df['coordinates']], dtype='float64')
+    latitudes = pd.Series([coordinates['latitude'] for coordinates in df['coordinates']], dtype='float64')
 
-    #longitude = house.longitude
-    #latitude = house.latitude
-    '''
-    TESTING
-    '''
-    longitude = '-118.341438'
-    latitude = '34.052503'
-    radius = 40000
-    categories = category
-    '''
-    TESTING
-    '''
+    df['longitude'] = longitudes
+    df['latitude'] = latitudes
     
-    parameters = {
-        'longitude' : longitude,
-        'latitude' : latitude,
-        'sort_by' : 'distance',
-        'categories' : categories,
-        'radius' : radius,
-        'limit' : limit
-    }
-    headers = {
-        'Authorization': 'bearer %s' % yelp_key
-        }
-    response = requests.get(yelp_URL, params=parameters, headers=headers)
-    sum_found = response.json()['total']
-    data = response.json()['businesses']
+    gdf = gpd.GeoDataFrame(df, crs='EPSG:4326', geometry=gpd.points_from_xy(df['longitude'], df['latitude']))
+    gdf['geometry'] = gdf.geometry
+    cols = ['name', 'review_count', 'rating', 'price', 'geometry']
     
-    df = pd.DataFrame.from_records(data)
-    df = df.drop(columns=['id', 'alias', 'categories', 'image_url', 'is_closed', 'url', 'display_phone', 'phone', 'location', 'transactions'], axis=1)
-#    df = df[df['review_count'] >= 25]
-    print(df.head(), df.shape)
-    print(df.columns)
+    gdf = gdf[cols]
     
-def parse_churches():    
+    #yelp API restaurant/business name quotation mark needs converting
+    gdf['name'] = gdf['name'].apply(lambda x: re.sub(u"(\u2018|\u2019)", "'", x))
+    
+    return gdf
+
+def zipcode_restaurants():
+    '''
+    Run zipcodes through yelp API, get 50(yelp's limit) restaurants and their ratings/price/review_count
+    Write to shapefile                                                                                        
+    '''
+    cd = os.getcwd()
+    os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/')
+    zipcodes = pd.read_csv('zipcodelocations.csv', sep=';')
+    cols = ['Zip']
+    zipcodes = zipcodes[cols]
+    zips = zipcodes['Zip'].to_list()
+    
+    frames = []
+    failed_zipcodes = []
+    for idx, locale in enumerate(zips):
+        try:
+            gdf = prox_restaurants(locale)
+            gdf['zipcode'] = locale
+            frames.append(gdf)
+        except:
+            print(locale)
+            failed_zipcodes.append(locale)
+
+    full_gdf = gpd.GeoDataFrame(pd.concat(frames, ignore_index=True), crs=frames[0].crs)
+    
+    full_gdf.to_file("./data/yelp/restaurants_by_zipcodes.shp")
+    # with open('failed_zips_limit_2000.pkl', 'wb') as f:
+    #     pickle.dump(failed_zipcodes, f)
+    os.chdir(cd)
+
+    return full_gdf, failed_zipcodes
+    
+    
+
+    
+def prox_worship():    
     file_dir = r'data/worship_locations/'
         
-    df = gpd.read_file(file_dir + 'AllPlacesOfWorship.shp')
+    gdf = gpd.read_file(file_dir + 'AllPlacesOfWorship.shp')
+    gdf = gdf.loc[gdf['CITY_2']=='LOS ANGELES']
+    gdf['geometry'] = gpd.points_from_xy(gdf['X'], gdf['Y'])
+    gdf.crs = 'EPSG:4326'
     
-    df = df['geometry']
+    cols = ['geometry']
+    gdf = gdf[cols]
+
     
-    return df
+    
+    return gdf
     
 
 
 
 if __name__ == '__main__':
-
-
-
-    df = prox_colleges()
-    print(df.head())
-
-
-
-
-
-
-
-
-
+    pass
