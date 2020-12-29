@@ -16,14 +16,12 @@ import seaborn as sns
 import torch
 import torch.nn as nn
 
-from scipy.spatial import cKDTree
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import MinMaxScaler
 
-from geospatial.haversine import haversine
-from geospatial.more_columns import prox_transpo, prox_colleges, prox_worship
+from geospatial.more_columns import prox_transpo, prox_colleges, prox_worship, proximal_locations
 from geospatial.to_wkt import to_wkt
 from geospatial.schoolimputation import assign_property_school_districts, school_imputation, property_school_rating
 from ml.kdtree import knearest_balltree
@@ -98,7 +96,7 @@ def add_schools():
     os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
     df = pd.read_csv('zillow.csv')
     
-    #for random sampling
+    #for random sampling   
     # df = df.sample(n=50)
     zillow_gdf = to_wkt(df)
 
@@ -183,73 +181,30 @@ def assign_dtypes():
     os.chdir(cd)
     return gdf
 
-def proximal_locations(gdf, flag):
-    '''
-    flag == 'public':
-    Defining easy access public transportaion as being within 5 miles of a house
-    First searching k=3 nearest neighbors, then dropping those >5 miles away
-    Appending count of nearby transportaion centers to house dataframe
-    
-    flag == 'schools':
-    Also finds proximity to public university education, k=3. Primarily composed of
-    technical/trade schools, secondary education, whereas the school imputation/ratings
-    from GreatSchools is for elementary -> high school ratings, for children.
-    
-    '''
-    cwd = os.getcwd()
-    os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/')
-    if flag == 'transpo':
-        prox_gdf = prox_transpo()
-    elif flag == 'colleges':
-        prox_gdf = prox_colleges()
-    elif flag == 'worship':
-        prox_gdf = prox_worship()
-    os.chdir(cwd)
-    
-    houses = gdf
-    
-    #first reset indices so they line up
-    houses.reset_index(drop=True, inplace=True)
-    prox_gdf.reset_index(drop=True, inplace=True)
-    
-    origins = np.array(list(houses.geometry.apply(lambda x: (x.x, x.y))))
-    neighbors = np.array(list(prox_gdf.geometry.apply(lambda x: (x.x, x.y))))
-    
-    btree = cKDTree(neighbors)
-
-    _, idx = btree.query(origins, 3)
-    
-    origins_idx = np.column_stack((origins, idx))
-    
-    haversine_distances = []
-    for array in origins_idx:
-        houses_lon, houses_lat = array[0], array[1]
-        
-        prox_pts = neighbors[array[2:5].astype(int)]
-        public_lon, public_lat = prox_pts[:,0], prox_pts[:,1]
-        
-        distance = haversine(houses_lon, houses_lat, public_lon, public_lat)
-        haversine_distances.append(distance)
-    haversine_distances = np.stack(haversine_distances, axis=0)
-
-    ans = np.zeros(len(haversine_distances))
-    ans = haversine_distances.mean(axis=1)
-
-    prox_series = pd.Series(ans)
-    if flag == 'transpo':
-        gdf['transpo_prox'] = prox_series
-    elif flag == 'colleges':
-        gdf['colleges_prox'] = prox_series
-    elif flag == 'worship':
-        gdf['worship_prox'] = prox_series
-    return gdf
 
 
 # %% Recompile Zillow data
-combine_zillow_csv()
+# combine_zillow_csv()
 
 # Schools
-add_schools()
+# add_schools()
+
+zill_gdf = assign_dtypes()
+
+
+# %% Building sample dataset for map
+
+df = zill_gdf
+print(df.columns)
+print(df.shape)
+df = df.loc[df['zestimate'] != 0]
+df = df.loc[df['useCode'] == 'SingleFamily']
+print(df.shape)
+df = df.dropna(subset=['zestimate'])
+df = df.sample(n=500)
+os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data')
+
+df.to_csv('sample_500_zestimate.csv', index=False)
 
 
 
@@ -376,10 +331,16 @@ One-hot encoding will be used for the first three codes.
 
 '''
 
-#only keeping first three zip code digits
+# #only keeping first three zip code digits
+# zips_df = norm_df
+# zips_df['zipcode'] = zips_df['zipcode'].apply(lambda x: x //100)
+# dummy_df = pd.get_dummies(zips_df, columns=['useCode', 'zipcode'], drop_first=True, prefix='', prefix_sep='')
+
+#trying only for usecode = 'SingleFamily'
 zips_df = norm_df
 zips_df['zipcode'] = zips_df['zipcode'].apply(lambda x: x //100)
-dummy_df = pd.get_dummies(zips_df, columns=['useCode', 'zipcode'], drop_first=True, prefix='', prefix_sep='')
+zips_df = zips_df.loc[zips_df['useCode'] == 'SingleFamily']
+dummy_df = pd.get_dummies(zips_df, columns=['zipcode'], drop_first=True, prefix='', prefix_sep='')
 
 
 # %% Final Cleaning of dataframe of unnecessary columns
@@ -397,13 +358,15 @@ Here we drop the unneeded columns for training our model:
     lastupdated
     DISTRICT
     school_count
+    zindexValue
+    valueChange
+    low
+    high    
     
     testing:
-        zindexValue
-        valueChange
-        low
-        high
         keep: yearBuilt
+        remove: useCode,
+                crime_density
         
     
     
@@ -411,7 +374,11 @@ Here we drop the unneeded columns for training our model:
 
 x_df = dummy_df.drop(columns=['zpid', 'percentile', 'street', 'city', 'state', 'taxAssessmentYear',
                               'FIPScounty', 'lastSoldDate', 'lastupdated', 'last-updated', 'DISTRICT', 
-                              'school_count', 'zindexValue', 'valueChange', 'low', 'high', 'taxAssessment'])
+                              'school_count', 'zindexValue', 'valueChange', 'low', 'high', 'taxAssessment',
+                              'useCode', 'crime_density'])
+
+
+
 
 x_df = x_df.dropna()
 
@@ -477,16 +444,11 @@ predictor_cols = x.columns
 
 cwd = os.getcwd()
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
-joblib.dump(predictor_cols, 'predictor_cols_02.pkl')
+joblib.dump(predictor_cols, 'predictor_cols_03.pkl')
 os.chdir(cwd)
 
 
 # %% Convert to Tensors, Set Hyperparameters
-'''
-Notes:
-    When scaling batch sizes by k, scale learning rate linearly along with them (multiply by k)
-    
-'''
 
 x_tensor = None
 y_tensor = None
@@ -499,10 +461,10 @@ y_tensor = torch.from_numpy(y.values)
 D_in, D_out = x_tensor.shape[1], y_tensor.shape[1]
 
 #Hyperparameters
-lr = .0001 # optimal learning rate for batch size of 64
+lr = .0005 # optimal learning rate for batch size of 64
 # lr = .03 # optimal learning rate for batch size 32
 epochs = 100
-L1, L2, L3, L4 = 200, 300, 300, 200
+L1, L2, L3, L4 = 4000, 5000, 5000, 4000
 
 
 # %%Init model, optimizer
@@ -523,12 +485,32 @@ criterion = nn.MSELoss()
 # #set our optimizer=Adam
 # opt = torch.optim.Adam(model.parameters(), lr=lr)
 
-#AdamW, default parameters (lr=1e-3, weight_decay=1e-2, eps=1e-8)   (best so far)
-opt = torch.optim.AdamW(model.parameters(), lr=lr)
+# #AdamW, default parameters (lr=1e-3, weight_decay=1e-2, eps=1e-8)   (best so far)
+# opt = torch.optim.AdamW(model.parameters(), lr=lr)
+'''
+result: Epoch: 100 loss: 0.9383808509883238 validation loss: 0.21503481738909613
+'''
 
-# #AdamW, default params, using AMSGrad variant
-# opt = torch.optim.AdamW(model.parameters(), lr=lr, amsgrad=True) #just added manual garbage cleanup after training
+#AdamW, default params, using AMSGrad variant
+opt = torch.optim.AdamW(model.parameters(), lr=lr, amsgrad=True) #just added manual garbage cleanup after training
+'''
+result: (lr=.0001, neurons: 200, 300, 300, 200, batch=128, drop useCode): 
+    Epoch: 100 loss: 37.06490480247885 validation loss: 7.978232683613896
+    
+result: (lr=.0005, neurons: 200, 300, 300, 200, batch=128, drop useCode, crime_density): 
+    Epoch: 100 loss: 0.6585311957169324 validation loss: 0.1456557799683651
 
+result: (lr=.0005, neurons: 400, 500, 500, 400, batch=128, drop useCode, crime_density): 
+    Epoch: 100 loss: 0.5185779714738601 validation loss: 0.11540724463702645
+    
+result: (lr=.0005, neurons: 4000, 5000, 5000, 4000, batch=128, drop useCode, crime_density):  
+    Epoch: 100 loss: 0.3578301961533725 validation loss: 0.08210584594235115   (long-ish runtime, possibly could run more epochs
+                                                                                               for better loss)
+    
+result: (lr=.0005, neurons: 5000, 6000, 6000, 5000, batch=64, drop useCode, crime_density):  
+    Epoch: 168 loss: 0.9562640792391903 validation loss: 0.21707699820763082 (incomplete, ran out of memory
+                                                                              aiming for 200 epochs)
+'''
 
 # %% Split and Set DataLoader
 
@@ -541,12 +523,12 @@ train_set = torch.utils.data.TensorDataset(X_train, y_train)
 
 validation_set = torch.utils.data.TensorDataset(X_test, y_test)
 
-train_params = {'batch_size' : 64,
+train_params = {'batch_size' : 128,
                 'shuffle' : True,
                 'pin_memory' : True,
                 'num_workers' : 0}
 
-test_params = {'batch_size' : 64,
+test_params = {'batch_size' : 128,
                'shuffle' : False}
 
 #training set
@@ -627,6 +609,30 @@ del model, opt
 gc.collect()
 torch.cuda.empty_cache()
 
+
+# %% Query Nvidia-smi
+import subprocess
+
+def get_gpu_memory_map():
+    """Get the current gpu usage.
+
+    Returns
+    -------
+    usage: dict
+        Keys are device ids as integers.
+        Values are memory usage as integers in MB.
+    """
+    result = subprocess.check_output(
+        [
+            'nvidia-smi', '--query-gpu=memory.used',
+            '--format=csv,nounits,noheader'
+        ], encoding='utf-8')
+    # Convert lines into a dictionary
+    gpu_memory = [int(x) for x in result.strip().split('\n')]
+    gpu_memory_map = dict(zip(range(len(gpu_memory)), gpu_memory))
+    return gpu_memory_map
+
+
 # %%
 
 
@@ -659,7 +665,7 @@ traced_model = torch.jit.trace(model, )
 # %% Saving the model
 
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
-FILENAME = 'state_dict_model_01.pt'
+FILENAME = 'state_dict_model_03.pt'
 
 torch.save(model.state_dict(), FILENAME)
 
