@@ -2,6 +2,10 @@ import requests
 import xml.etree.ElementTree as ET
 
 def get_zestimate(key, zpid, House):
+    '''
+    Calls Zillow's get zestimate endpoint.
+    @return: House with monthly rental costs
+    '''
     try:
 
         url = 'https://www.zillow.com/webservice/GetZestimate.htm'
