@@ -12,6 +12,7 @@ import torch.nn as nn
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 
+import pickle
 
 
 from deepsearchresults import deep_search
@@ -23,7 +24,7 @@ key = os.getenv('ZILLOW_API_KEY')
 # %% Retrieve Sample Houses
 def generate_addresses():
     path = '/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/'
-    sample = pd.read_csv(path + 'sample_500_zestimate.csv')
+    sample = pd.read_csv(path + 'sample_zipcodes_0.1_zestimate.csv')
     streets = sample['street'].values.tolist()
     cities = sample['city'].values.tolist()
     states = sample['state'].values.tolist()
@@ -99,7 +100,7 @@ propertyDefaults = {
 
 
 
-def rate_house(address, results):
+def rate_house(address, results: list, houses: list):
     os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ')
     cwd = os.getcwd()
 
@@ -126,7 +127,6 @@ def rate_house(address, results):
     '''
         
     #preapproved list of cities in LA county available for model
-    la_county_cities = []
     
     zill.update(address)
     
@@ -200,32 +200,50 @@ def rate_house(address, results):
     # print("Actual value: ", y_actual_scaled, "Predicted value: ", y_pred_scaled)
     
     scaled_loss = y_actual_scaled - y_pred_scaled
+    
     results.append(tuple((y_actual_scaled, y_pred_scaled, scaled_loss)))
+    houses.append(zill)
     
     os.chdir(cwd)
-    return zill
+    return
 
-# %%
+# %% USING RANDOM GENERATED SAMPLE HOUSES
+'''
+Script from here on is for generating the random 500 houses for the map
 
+'''
 pd.options.display.max_columns = None
-address_list = generate_addresses()
+zipcode_samples = generate_addresses()
 
    
 results = []
 houses = []
 
+
+
 # %%
 
-
-prev_count = 334
-for count, x in enumerate(address_list[prev_count:], start=prev_count):
+'''
+TODO:
+    evaluate greater proportion of each zipcode, to provide a better look at each zipcode, if wanting to query valuations by zipcode
+'''
+prev_count = 0
+for count, home in enumerate(zipcode_samples[prev_count:], start=prev_count):
     try:
-        zill = rate_house(x, results)
-        print(results[count])
-        houses.append(zill)
+        if count == 10:
+            break
+        rate_house(home, results, houses)
     except KeyError:
         continue
+    except ValueError:
+        continue
+    except ConnectionError:
+        print('api limit')
+        break
 
+# %%
+
+test = houses[0]
 
 
 # %%
@@ -253,14 +271,13 @@ print(avg_pct_off)
 # %% normalizing losses, rescaling from -1 to 1
 
 loss_arr = np.array([result[2] for result in results])
-normed = (2.0 * ((loss_arr - min(loss_arr))/(max(loss_arr) - min(loss_arr)))) - 1
-np.set_printoptions(suppress=True)
+# normed = (2.0 * ((loss_arr - min(loss_arr))/(max(loss_arr) - min(loss_arr)))) - 1
 
-gradients = normed.tolist()
+unscaled_gradients = loss_arr.tolist()
 
 # %% adding evaluations
 
-for zill, res, grad in list(zip(houses, results, gradients)):
+for zill, res, grad in list(zip(houses, results, unscaled_gradients)):
     zill.add_evaluation(res[1], grad)
 
 
@@ -278,25 +295,80 @@ class NpEncoder(json.JSONEncoder):
         else:
             return super(NpEncoder, self).default(obj)
         
-features = [house._values for house in houses]
+houses_to_file = []
+for house in houses:
+    house.prep_for_write()
+    houses_to_file.append(house)
+    
+features = [house._values for house in houses_to_file]
 
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
 
-with open('500_houses.json', 'w') as fout:
+with open('zipcode_0.1_20114_24556_unscaled_samples.json', 'w') as fout:
     json.dump(features, fout, cls=NpEncoder, indent=4, separators=(',', ': '))
 
 
 
 
+# %% COMPILE ALL RANDOM SAMPLE ZIPCODES INTO ONE JSON FILE WITH "features" as parent
+
+'''
+TODO:
+    records kept in UNSCALED format so far for further compiling when fleshing out the query by zipcode features
+'''
+import glob
+os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data/')
+files = glob.glob('./*_unscaled_samples.json')
+
+dfs = []
+
+for f in files:
+    df_json = pd.read_json(f, orient='records')
+    dfs.append(df_json)
+    
+full_df = pd.concat(dfs, ignore_index=True)
+
+print(full_df.head(), full_df.shape)
+
+# %% normalize valuation by zipcode group, and by overall group
+zipcodes_df = full_df.dropna()
 
 
+# %%
 
 
+# min_arr = zipcodes_df.groupby('zipcode')['valuationgradient'].transform('min')
+# max_arr = zipcodes_df.groupby('zipcode')['valuationgradient'].transform('max')
 
 
+final_df = zipcodes_df.groupby('zipcode')['valuationgradient'].transform(lambda x: (2.0 * ((x - min(x))/(max(x) - min(x)))) - 1)
 
+zipcodes_df = zipcodes_df.drop(labels='valuationgradient', axis='columns')
 
+zipcodes_df['valuationgradient'] = final_df
 
+# %%
+with open('full_zipcode_UNSCALED.pkl', 'wb') as f:
+    pickle.dump(zipcodes_df, f)
+
+# %%
+
+with open('full_zipcode_scaled.pkl', 'rb') as f:
+    df = pickle.load(f)
+    
+col_dtypes = { 'fipscounty' : object,
+               'zipcode' : object,
+               'taxassessment' : float,
+               'yearbuilt' : object,
+               'bedrooms' : float,
+               'id' : object
+    }
+
+df = df.astype(col_dtypes)
+
+# %%
+with open('full_zipcode_scaled.pkl', 'rb') as f:
+    df = pickle.load(f)
 
 
 
