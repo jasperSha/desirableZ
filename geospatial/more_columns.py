@@ -14,12 +14,16 @@ import numpy as np
 import geopandas as gpd
 from shapely.wkt import loads
 
+from scipy.spatial import cKDTree
+from geospatial.haversine import haversine
+
 
 def prox_transpo():
     file_dir = r'data/publictranspo/'
     
     df = gpd.read_file(file_dir + 'Metro_Rail_Lines_Stops.shp')
     df2 =  gpd.read_file(file_dir + 'Metro_Stations.shp')
+
     
     df = df['geometry']
     df2 = df2['geometry']
@@ -77,11 +81,12 @@ def prox_restaurants(zipcode, radius=40000, limit=50):
         }
     response = requests.get(yelp_URL, params=parameters, headers=headers)
     try:
+        total = response.json()['total']
         data = response.json()['businesses']
     except:
-        print(response)
+        print(response.text)
         return
-
+    
     df = pd.DataFrame.from_records(data)   
     df = df.loc[df['review_count'] >= 25]
     
@@ -99,10 +104,8 @@ def prox_restaurants(zipcode, radius=40000, limit=50):
     
     gdf = gdf[cols]
     
-    #yelp API restaurant/business name quotation mark needs converting
-    gdf['name'] = gdf['name'].apply(lambda x: re.sub(u"(\u2018|\u2019)", "'", x))
-    
-    return gdf
+
+    return gdf, data, total
 
 def zipcode_restaurants():
     '''
@@ -112,14 +115,19 @@ def zipcode_restaurants():
     cd = os.getcwd()
     os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/')
     zipcodes = pd.read_csv('zipcodelocations.csv', sep=';')
+    
+    zipcodes = zipcodes.loc[zipcodes['City']=='Los Angeles']
+
     cols = ['Zip']
     zipcodes = zipcodes[cols]
     zips = zipcodes['Zip'].to_list()
     
     frames = []
     failed_zipcodes = []
-    for idx, locale in enumerate(zips):
+    for idx, locale in enumerate(zips[100:], start=100):
         try:
+            # if idx == 100:
+            #     break
             gdf = prox_restaurants(locale)
             gdf['zipcode'] = locale
             frames.append(gdf)
@@ -128,13 +136,10 @@ def zipcode_restaurants():
             failed_zipcodes.append(locale)
 
     full_gdf = gpd.GeoDataFrame(pd.concat(frames, ignore_index=True), crs=frames[0].crs)
-    
-    full_gdf.to_file("./data/yelp/restaurants_by_zipcodes.shp")
-    # with open('failed_zips_limit_2000.pkl', 'wb') as f:
-    #     pickle.dump(failed_zipcodes, f)
+
     os.chdir(cd)
 
-    return full_gdf, failed_zipcodes
+    return idx, full_gdf, failed_zipcodes
     
     
 
@@ -155,7 +160,80 @@ def prox_worship():
     return gdf
     
 
+def proximal_locations(gdf, flag):
+    '''
+    flag == 'public':
+    Defining easy access public transportaion as being within 5 miles of a house
+    First searching k=3 nearest neighbors, then dropping those >5 miles away
+    Appending count of nearby transportaion centers to house dataframe
+    
+    flag == 'schools':
+    Also finds proximity to public university education, k=3. Primarily composed of
+    technical/trade schools, secondary education, whereas the school imputation/ratings
+    from GreatSchools is for elementary -> high school ratings, for children.
+    
+    '''
+    cwd = os.getcwd()
+    os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/geospatial/')
+    if flag == 'transpo':
+        prox_gdf = prox_transpo()
+    elif flag == 'colleges':
+        prox_gdf = prox_colleges()
+    elif flag == 'worship':
+        prox_gdf = prox_worship()
+    os.chdir(cwd)
+    
+    houses = gdf
+    
+    #first reset indices so they line up
+    houses.reset_index(drop=True, inplace=True)
+    prox_gdf.reset_index(drop=True, inplace=True)
+    
+    origins = np.array(list(houses.geometry.apply(lambda x: (x.x, x.y))))
+    neighbors = np.array(list(prox_gdf.geometry.apply(lambda x: (x.x, x.y))))
+    
+    btree = cKDTree(neighbors)
+
+    _, idx = btree.query(origins, 3)
+    
+    origins_idx = np.column_stack((origins, idx))
+    
+    haversine_distances = []
+    for array in origins_idx:
+        houses_lon, houses_lat = array[0], array[1]
+        
+        prox_pts = neighbors[array[2:5].astype(int)]
+        public_lon, public_lat = prox_pts[:,0], prox_pts[:,1]
+        
+        distance = haversine(houses_lon, houses_lat, public_lon, public_lat)
+        haversine_distances.append(distance)
+    haversine_distances = np.stack(haversine_distances, axis=0)
+
+    ans = np.zeros(len(haversine_distances))
+    ans = haversine_distances.mean(axis=1)
+
+    prox_series = pd.Series(ans)
+    if flag == 'transpo':
+        gdf['transpo_prox'] = prox_series
+    elif flag == 'colleges':
+        gdf['colleges_prox'] = prox_series
+    elif flag == 'worship':
+        gdf['worship_prox'] = prox_series
+    return gdf
 
 
 if __name__ == '__main__':
-    pass
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
