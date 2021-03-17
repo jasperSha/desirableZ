@@ -201,10 +201,14 @@ df = df.loc[df['zestimate'] != 0]
 df = df.loc[df['useCode'] == 'SingleFamily']
 print(df.shape)
 df = df.dropna(subset=['zestimate'])
-df = df.sample(n=500)
+
+
+zipcodes_df = df.groupby('zipcode')
+zipcodes_df = zipcodes_df.apply(lambda x: x.sample(frac=0.1))
+
 os.chdir('/home/jaspersha/Projects/HeatMap/desirableZ/ml/data')
 
-df.to_csv('sample_500_zestimate.csv', index=False)
+zipcodes_df.to_csv('sample_zipcodes_0.1_zestimate.csv', index=False)
 
 
 
